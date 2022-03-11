@@ -12,6 +12,7 @@ from modules.common.hearing import Hearing
 from modules.backlog_api import BacklogApi
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.config.db import CMSLSIT
+from modules.config.db import ENVLIST
 
 class ThrowList(BacklogApi):
     data = {}
@@ -97,6 +98,11 @@ class ThrowList(BacklogApi):
             else:
                 self.data[page]['html'].append(item)
             return
+        elif extends == 'php':
+            return
+        elif extends == 'html':
+            self.data[page]['html'].append(item)
+            return
         elif extends == 'png' \
             or extends == 'PNG' \
             or extends == 'jpg' \
@@ -142,16 +148,18 @@ class ThrowList(BacklogApi):
         result_lsit = list(set(all_list))
         return result_lsit
 
-
 class OpenExe:
-    winmerge_copy_file: 'config/wiro.inc'
+    cms_countent = '/cms-part/now-cms-copy.inc'
+    cookipit = ''
 
-    def __init__(self):
-        return
+    def __init__(self, console):
+        self.fc = FileController()
+        self.console = console
 
     def folderOpen(self, full_path):
         try:
             p = subprocess.Popen(["explorer",  full_path], shell=True)
+            #print('folder open')
         except:
             log_msg = f'''
 
@@ -174,8 +182,11 @@ class OpenExe:
             '''.strip()
             self.console.log(log_msg)
 
-    def winMergeOpen(self, fulll_path):
-        cmd = 'start WinMergeU ' + fulll_path + ' ' + self.winmerge_copy_file
+    def winMergeOpen(self, fulll_path, env):
+        current_dir = os.getcwd()
+        new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + env + '/' + fulll_path)
+        now_cms_content = self.fc.creanPath(current_dir + self.cms_countent)
+        cmd = 'start WinMergeU ' + new_content + ' ' + now_cms_content
         try:
             subprocess.check_call(cmd, shell=True)
         except:
@@ -186,15 +197,61 @@ class OpenExe:
             self.console.log(log_msg)
             return False
 
+    def openCockpit(self, page_path, env):
+        url = ENVLIST[env]['domain']['pc'] + CMSLSIT['Sitecore_PROD']['checkTool'] + '/?' + page_path + '/'
+        account = ENVLIST[env]['account']
+        password = ENVLIST[env]['password']
+        url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
+        try:
+            webbrowser.open(url_auth)
+            #print('open web')
+        except:
+            log_msg = f'''
+
+            Web site open failed. : {url_auth}
+            '''.strip()
+            self.console.log(log_msg)
+
 class CmsThrow(ThrowList):
     page_count = 0
-    sandbox = '/sandbox'
+    sandbox = '/cms-part/sandbox'
 
     def __init__(self, comment_url, cms_type='WIRO'):
         super().__init__(comment_url)
-        self.type = cms_type
+        self.cms_type = cms_type
         self.hearinger = Hearing()
-        self.openExe = OpenExe()
+        self.openExe = OpenExe(self.console)
+
+    def checkCMSType(self):
+        check_sitecore = re.search(r'Sitecore', self.cms_type)
+        check_wiro = re.search(r'WIRO', self.cms_type)
+
+        if not check_sitecore is None:
+            return 'Sitecore'
+        elif not check_wiro is None:
+            return 'WIRO'
+        else:
+            return 'undifend'
+
+    def showEnd(self):
+        pre_msg = f'''
+        ({self.page_count}/{len(self.data)}) Page List
+        ----------------------------------------------------
+        '''.strip()
+        self.console.log(pre_msg)
+
+        self.showList(self.data)
+
+        last_msg = f'''
+                ----------------------------------------------------
+
+                Completed.
+        '''.strip()
+        self.console.log(last_msg)
+        self.console.log('')
+
+        input('Did you close all sandbox folder? : ')
+        return
 
     def showStart(self):
         pre_msg = f'''
@@ -242,6 +299,7 @@ class CmsThrow(ThrowList):
         page_data = self.data[page_dir]
         file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
         for file_item in file_list:
+            self.openExe.winMergeOpen(file_item, self.env)
             self.checkDone(file_item)
 
     def setCloneResources(self, file_list):
@@ -265,11 +323,13 @@ class CmsThrow(ThrowList):
             current_dir = os.getcwd()
             sandbox_item = self.fc.creanPath(current_dir + self.sandbox + dir_item)
 
-            if self.type == 'WIRO':
-                url = CMSLSIT['WIRO']['resources'] + dir_item
-                self.openExe.webOpen(url)
+            check_cms_type = self.checkCMSType()
+            if check_cms_type == 'WIRO':
+                url = CMSLSIT[self.cms_type]['resources'] + dir_item
+                data_url = re.sub(r'/set/data', r'/data', url)
+                self.openExe.webOpen(data_url)
                 self.openExe.folderOpen(sandbox_item)
-            elif self.type == 'Sitecore':
+            elif check_cms_type == 'Sitecore':
                 item_count = 0
                 for dirname, subdirs, filenames in os.walk(sandbox_item):
                     item_count = len(filenames)
@@ -285,18 +345,22 @@ class CmsThrow(ThrowList):
             file_items = self.getResouceItemList(dir_item, file_list)
             self.showList(file_items)
             count = count + len(file_items)
-            self.checkDone(f'{dir_item} ({count}/{len(file_list)})')
+            if check_cms_type == 'Sitecore':
+                self.console.log('')
+                media_library_path = re.sub(r'/', '    ', dir_item)
+                self.console.log(media_library_path)
+                self.console.log('')
+            self.checkDone(f'{dir_item} ({count}/{len(file_list)}, add: {len(file_items)})')
 
     def throwDelete(self, page_dir):
         page_data = self.data[page_dir]['delete']
         count = 0
 
-        if self.type == 'Sitecore':
-            self.openExe.webOpen(CMSLSIT['Sitecore_PROD']['resources'])
+        check_cms_type = self.checkCMSType()
 
         for file_item in page_data:
-            if self.type == 'WIRO':
-                url = CMSLSIT['WIRO']['resources'] + dir_item
+            if check_cms_type == 'WIRO':
+                url = CMSLSIT[self.cms_type]['resources'] + dir_item
                 self.openExe.webOpen(url)
 
             self.checkDelete(f'{file_item} ({count}/{len(page_data)})')
@@ -326,14 +390,20 @@ class CmsThrow(ThrowList):
     def throwSitecore(self):
         self.page_count = 1
         self.showStart()
-        self.openExe.webOpen(CMSLSIT['Sitecore_PROD']['article'])
+        self.openExe.webOpen(CMSLSIT[self.cms_type]['article'])
+        self.openExe.webOpen(CMSLSIT[self.cms_type]['resources'])
         check = self.hearinger.select(f'Did you login Sitecore PROD ?', ('y', 'n'), True)
 
         for page_dir in self.data:
             self.showData(page_dir)
+
+            self.console.log('')
+            content_editor_path = re.sub(r'/', '    ', page_dir)
+            self.console.log(content_editor_path)
+            self.console.log('')
+
+            self.openExe.openCockpit(page_dir, self.env)
             self.throwArtcle(page_dir)
-            url = CMSLSIT['Sitecore_PROD']['resources']
-            self.openExe.webOpen(url)
             self.throwResources(page_dir)
             self.throwDelete(page_dir)
             self.page_count += 1
@@ -341,12 +411,12 @@ class CmsThrow(ThrowList):
     def throwWIRO(self):
         self.page_count = 1
         self.showStart()
-        self.openExe.webOpen(CMSLSIT['WIRO']['article'])
+        self.openExe.webOpen(CMSLSIT[self.cms_type]['article'])
         check = self.hearinger.select(f'Did you login WIRO ?', ('y', 'n'), True)
 
         for page_dir in self.data:
             self.showData(page_dir)
-            url = CMSLSIT['WIRO']['article'] + page_dir + CMSLSIT['WIRO']['search_key']
+            url = CMSLSIT[self.cms_type]['article'] + page_dir + CMSLSIT[self.cms_type]['search_key']
             self.openExe.webOpen(url)
             self.throwArtcle(page_dir)
             self.throwResources(page_dir)
@@ -367,12 +437,15 @@ class CmsThrow(ThrowList):
         self.getPageData(self.getPageList())
         #pprint.pprint(self.data)
 
-        if self.type == 'WIRO':
+        check_cms_type = self.checkCMSType()
+        if check_cms_type == 'WIRO':
             self.throwWIRO()
-        elif self.type == 'Sitecore':
+        elif check_cms_type == 'Sitecore':
             self.throwSitecore()
         else:
             self.resetSandBox()
             return
+
+        self.showEnd()
         self.resetSandBox()
         return

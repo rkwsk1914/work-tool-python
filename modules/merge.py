@@ -40,19 +40,19 @@ class Merge(BacklogApi):
         #print(data[1])
         extends = re.sub(r'\.', '', data[1])
         #print(f'extends: {extends}')
-        if extends == 'pdf' \
-            or extends == 'png' \
-            or extends == 'PNG' \
-            or extends == 'jpg' \
-            or extends == 'jpeg' \
-            or extends == 'JPG' \
-            or extends == 'JPEG' \
-            or extends == 'pjp' \
-            or extends == 'pjpeg' \
-            or extends == 'jfif' \
-            or extends == 'jpe' \
-            or extends == 'gif' \
-            or extends == 'svg':
+        if extends == 'inc' \
+            or extends == 'php' \
+            or extends == 'html' \
+            or extends == 'json' \
+            or extends == 'jsonp' \
+            or extends == 'js' \
+            or extends == 'jsx' \
+            or extends == 'ts' \
+            or extends == 'tsx' \
+            or extends == 'vue' \
+            or extends == 'css' \
+            or extends == 'sass' \
+            or extends == 'scss':
             return True
         return False
 
@@ -60,9 +60,8 @@ class Merge(BacklogApi):
         orign_item = self.setItemPath(self.origin_env, item)
         merge_item = self.setItemPath(self.merge_env, item)
 
-        check_img = self.checkCodeFile(merge_item)
-        if check_img == True:
-            print(f'img cpoy : {item}')
+        check_code = self.checkCodeFile(merge_item)
+        if check_code == False:
             self.doCopy(item)
             return
 
@@ -107,6 +106,9 @@ class Merge(BacklogApi):
             self.console.log(log_msg)
 
     def start(self):
+        if self.origin_env is None:
+            return
+
         start_msg = f'''
 
         Start.

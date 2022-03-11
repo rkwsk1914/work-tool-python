@@ -1,7 +1,6 @@
 import sys
 import re
 from modules.common.hearing import Hearing
-from modules.cms import CmsThrow
 from modules.resourcs_check import ResourceChecK
 from modules.config.db import CMSLSIT
 
@@ -46,11 +45,9 @@ def checkCMSType(args, default):
 args = sys.argv
 #print(args)
 #print(f'{checkUrl(args)}, {checkCMSType(args, 'WIRO')}')
+
 comment_url = checkUrl(args)
 cms_type = checkCMSType(args, 'WIRO')
-
-cms = CmsThrow(comment_url, cms_type=cms_type)
-cms.start()
 
 rc = ResourceChecK(comment_url, cms_type=cms_type)
 rc.start()
