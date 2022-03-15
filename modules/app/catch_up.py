@@ -8,8 +8,7 @@ import pprint
 
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
-
-from modules.scraping import Scraping
+from modules.common.scraping import Scraping
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.config.setup import SOFTBANK_DOMAIN
@@ -268,7 +267,7 @@ class HTMLGatter:
             #else:
             #print(line)
             #line = item.decode('utf-8')
-            check = re.search(r'/(\w+/)+\w+\.\w+', line)
+            check = re.search(r'\/(.+\/)+.+\.\w+', line)
             print(check)
             if check is None:
                 continue

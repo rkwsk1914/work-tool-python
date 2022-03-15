@@ -4,8 +4,8 @@ import os
 
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
+from modules.common.backlog_api import BacklogApi
 
-from modules.backlog_api import BacklogApi
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 
 class Merge(BacklogApi):
@@ -35,32 +35,16 @@ class Merge(BacklogApi):
             '''.strip()
             self.console.log(log_msg)
 
-    def checkCodeFile(self, path):
-        data = os.path.splitext(path)
-        #print(data[1])
-        extends = re.sub(r'\.', '', data[1])
-        #print(f'extends: {extends}')
-        if extends == 'inc' \
-            or extends == 'php' \
-            or extends == 'html' \
-            or extends == 'json' \
-            or extends == 'jsonp' \
-            or extends == 'js' \
-            or extends == 'jsx' \
-            or extends == 'ts' \
-            or extends == 'tsx' \
-            or extends == 'vue' \
-            or extends == 'css' \
-            or extends == 'sass' \
-            or extends == 'scss':
-            return True
-        return False
-
     def doMerge(self, item):
         orign_item = self.setItemPath(self.origin_env, item)
         merge_item = self.setItemPath(self.merge_env, item)
 
-        check_code = self.checkCodeFile(merge_item)
+        check = os.path.exists(merge_item)
+        if check == False:
+            self.doCopy(item)
+            return
+
+        check_code = self.fc.checkCodeFile(merge_item)
         if check_code == False:
             self.doCopy(item)
             return
@@ -76,7 +60,6 @@ class Merge(BacklogApi):
             '''.strip()
             self.console.log(log_msg)
         return
-
 
     def winmerge(self, orign_item, merge_item):
         cmd = 'start WinMergeU ' + orign_item + ' ' + merge_item

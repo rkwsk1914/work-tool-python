@@ -18,15 +18,20 @@ class FileController:
 
     # method
     def creanPath(self, path_text):
-        crean_path = re.sub('/', r"\\", path_text)
+        crean_path = re.sub(r'/', r"\\", path_text)
+        crean_path = re.sub(r'\\\\', r"\\", crean_path)
         return crean_path
 
     def addWrite(self, line, flie_full_path):
         with open(flie_full_path, 'a') as f:
             print(line, file=f)
 
+    def writing(self, data, flie_full_path):
+        with open(flie_full_path, 'w', encoding="utf8") as f:
+            f.writelines(data)
+
     def reading(self, flie_full_path):
-        f = open('C:/previewBox/m2-dev.local/kawasaki-lab/asign/index.html','r')
+        f = open(flie_full_path, 'r', encoding="utf8", errors='ignore')
         lines = f.readlines()
         f.close()
         return lines
@@ -60,7 +65,7 @@ class FileController:
 
     def copy(self, origin, clone):
         origin_dir = os.path.dirname(origin)
-        check_origin = os.path.dirname(clone)
+        check_origin = os.path.exists(origin)
 
         if check_origin == False:
             print(f'Not exsits {origin}')
@@ -102,3 +107,26 @@ class FileController:
         shutil.rmtree(path)
         os.mkdir(path)
         return
+
+    def checkCodeFile(self, path):
+        data = os.path.splitext(path)
+        #print(data[1])
+        extends = re.sub(r'\.', '', data[1])
+        #print(f'extends: {extends}')
+        if extends == 'inc' \
+            or extends == 'php' \
+            or extends == 'html' \
+            or extends == 'json' \
+            or extends == 'jsonp' \
+            or extends == 'js' \
+            or extends == 'jsx' \
+            or extends == 'ts' \
+            or extends == 'tsx' \
+            or extends == 'vue' \
+            or extends == 'css' \
+            or extends == 'sass' \
+            or extends == 'scss':
+            return True
+        return False
+
+

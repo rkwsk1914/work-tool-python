@@ -1,4 +1,5 @@
 import re
+import pprint
 
 from modules.common.api import ApiControlller
 from modules.config.setup import BACKLOG_KEY
@@ -9,7 +10,6 @@ class BacklogApi(ApiControlller):
     comment_prefix = 'https://sbweb.backlog.jp/view/'
     apikey = BACKLOG_KEY
 
-    # constructor
     def __init__(self, comment_url):
         request_url = self.createRequestURL(comment_url)
         self.json_data = self.get(request_url)
@@ -22,18 +22,18 @@ class BacklogApi(ApiControlller):
         return request_url
 
     def checkJson(self):
-        #print(json_data)
+        #print(self.json_data)
         flie_data_text = ''
         if self.json_data['content']:
             content = self.json_data['content']
-            re_text = re.search('\*\*\*修正した全てのファイル\s\n\{code\}\n(\S*\n)*\{/code\}', content)
+            re_text = re.search(r'\*\*\*修正した全てのファイル\s?\n\{code\}\n(((■\S{2})|\w|\_|\-|\.|/)*\n)*\{/code\}', content)
 
             if re_text is None:
                 return None
             else:
                 all_text = re_text.group()
-                without_pre_text = re.sub('\*\*\*修正した全てのファイル\s\n\{code\}\n', '', all_text)
-                flie_data_text = re.sub('\n\{/code\}', '', without_pre_text)
+                without_pre_text = re.sub(r'\*\*\*修正した全てのファイル\s?\n\{code\}\n', '', all_text)
+                flie_data_text = re.sub(r'\n\{/code\}', '', without_pre_text)
                 #print(flie_data_text)
             return flie_data_text
 
@@ -55,7 +55,10 @@ class BacklogApi(ApiControlller):
                 result.pop(-1)
             return result
 
+        return []
+
     def getFileList(self, flie_data_text):
+        #print(flie_data_text)
         file_list = {
             'update': self.changeListFromText('■更新', flie_data_text),
             'new': self.changeListFromText('■新規', flie_data_text),
@@ -88,9 +91,24 @@ class BacklogApi(ApiControlller):
                     return env_text
         return None
 
+    def getCacheList(self):
+        flie_data_text = ''
+        if self.json_data['content']:
+            content = self.json_data['content']
+            re_text = re.search(r'\*\*\*キャッシュ対策するファイル ※pdfを除くリソース\n\{code\}\n((\w|\_|\-|\.|/)*\n)*\{/code\}', content)
+            if re_text is None:
+                return None
+            else:
+                all_text = re_text.group()
+                without_pre_text = re.sub(r'\*\*\*キャッシュ対策するファイル ※pdfを除くリソース\n\{code\}\n', '', all_text)
+                flie_data_text = re.sub(r'\n\{/code\}', '', without_pre_text)
+            return flie_data_text
+        return None
+
     def getUpDatedFile(self):
 
         flie_data_text = self.checkJson()
+        #print(flie_data_text)
 
         if flie_data_text is None:
             return None

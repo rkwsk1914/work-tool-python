@@ -4,11 +4,12 @@ import re
 import os
 import pprint
 
-from modules.config.db import CMSLSIT
-from modules.config.db import ENVLIST
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
-from modules.backlog_api import BacklogApi
+from modules.common.backlog_api import BacklogApi
+
+from modules.config.db import CMSLSIT
+from modules.config.db import ENVLIST
 
 class ResourceChecK(BacklogApi):
     miss_list = []
@@ -21,6 +22,7 @@ class ResourceChecK(BacklogApi):
         self.fc = FileController()
 
         file_list = self.getUpDatedFile()
+        #pprint.pprint(file_list)
         all_list = list(set(file_list['update'] + file_list['new']))
         self.check_list = self.getResouceList(all_list)
         #pprint.pprint(self.check_list)
@@ -106,15 +108,10 @@ class ResourceChecK(BacklogApi):
         request_b = self.createRequest(url_b, account_b, password_b)
 
         data_a = self.getUrlResponse(request_a, url_a)
-
         data_b = self.getUrlResponse(request_b, url_b)
 
         if data_a == '' or data_b == '':
-            if data_a == '':
-                self.fail_list.append(url_a)
-            if data_b == '':
-                self.fail_list.append(url_b)
-
+            self.fail_list.append(item)
             self.console.log('Fail')
             self.console.log(url_a)
             self.console.log(url_b)
@@ -135,7 +132,7 @@ class ResourceChecK(BacklogApi):
         return
 
     def showMissList(self):
-        if len(self.miss_list) <= 1:
+        if len(self.miss_list) < 1:
             self.console.log('')
             self.console.log('')
             self.console.log('All Resources are Same. OK. ')
@@ -151,7 +148,7 @@ class ResourceChecK(BacklogApi):
         return
 
     def showFailList(self):
-        if len(self.fail_list) <= 1:
+        if len(self.fail_list) < 1:
             self.console.log('')
             self.console.log('')
             self.console.log('Request URL \'s are All Success. ')

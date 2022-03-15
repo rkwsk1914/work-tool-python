@@ -8,8 +8,8 @@ from pathlib import Path
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
 from modules.common.hearing import Hearing
+from modules.common.backlog_api import BacklogApi
 
-from modules.backlog_api import BacklogApi
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.config.db import CMSLSIT
 from modules.config.db import ENVLIST
@@ -148,6 +148,7 @@ class ThrowList(BacklogApi):
         result_lsit = list(set(all_list))
         return result_lsit
 
+
 class OpenExe:
     cms_countent = '/cms-part/now-cms-copy.inc'
     cookipit = ''
@@ -211,6 +212,7 @@ class OpenExe:
             Web site open failed. : {url_auth}
             '''.strip()
             self.console.log(log_msg)
+
 
 class CmsThrow(ThrowList):
     page_count = 0
@@ -402,10 +404,11 @@ class CmsThrow(ThrowList):
             self.console.log(content_editor_path)
             self.console.log('')
 
-            self.openExe.openCockpit(page_dir, self.env)
-            self.throwArtcle(page_dir)
             self.throwResources(page_dir)
             self.throwDelete(page_dir)
+
+            self.openExe.openCockpit(page_dir, self.env)
+            self.throwArtcle(page_dir)
             self.page_count += 1
 
     def throwWIRO(self):
