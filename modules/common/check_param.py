@@ -56,24 +56,19 @@ class CheckParam:
 
     def checkCMSType(self, args, default, msg, num):
         cms_type = ''
-        type_list = CMSLSIT
-        type_check = False
+        hearinger = Hearing()
 
         if len(args) > num:
-            for type_item in type_list:
+            print('test', args[num])
+            for type_item in CMSLSIT:
                 if args[num] == type_item:
-                    type_check = True
+                    return args[num]
         else:
-            type_check = False
-            cms_type = default
+            for type_item in CMSLSIT:
+                if default == type_item:
+                    return default
 
-        if type_check == False:
-            hearinger = Hearing()
-            cms_type = hearinger.select(msg, type_list)
-        elif cms_type != '' and type_check == True:
-            return cms_type
-        else:
-            cms_type = args[num]
+        cms_type = hearinger.select(msg, CMSLSIT)
         return cms_type
 
     def check(self, args, msg, num, regexp):

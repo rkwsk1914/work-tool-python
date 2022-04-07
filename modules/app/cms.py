@@ -12,23 +12,409 @@ from modules.common.hearing import Hearing
 from modules.common.backlog_api import BacklogApi
 from modules.common.scraping import Scraping
 from modules.common.svn import SvnConroller
+from modules.common.cms_checker import CMSchecker
+
 from modules.app.resourcs_check import ResourceChecK
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.config.db import CMSLSIT
 from modules.config.db import ENVLIST
 
+console = LogMater('CMS')
+
+#
+# SUB
+#
+class OpenExe:
+    cms_countent = '/cms-part/now-cms-copy.inc'
+    localcode_pc = '/cms-part/now-sitecore-localcode-pc.inc'
+    localcode_sp = '/cms-part/now-sitecore-localcode-sp.inc'
+    conten_pc = '/cms-part/now-sitecore-content-pc.inc'
+    conten_sp = '/cms-part/now-sitecore-content-sp.inc'
+
+    cookipit = ''
+
+    def __init__(self):
+        self.app_name = __class__.__name__
+        self.fc = FileController()
+        self.sc = Scraping()
+
+    def folderOpen(self, full_path):
+        try:
+            p = subprocess.Popen(["explorer",  full_path], shell=True)
+            #print('folder open')
+        except:
+            console.error(self.app_name, f'Folder open failed. : {full_path}')
+
+    def webOpen(self, url):
+        try:
+            webbrowser.open(url)
+            #print(f'open web : {url}')
+        except:
+            console.error(self.app_name, f'Web site open failed. : {url}')
+
+    def winMergeOpen(self, new_content):
+        current_dir = os.getcwd()
+        now_cms_content = self.fc.creanPath(current_dir + self.cms_countent)
+        cmd = 'start WinMergeU ' + new_content + ' ' + now_cms_content
+        try:
+            subprocess.check_call(cmd, shell=True)
+            #print(cmd)
+        except:
+            console.error(self.app_name, f'WinMerge failed. : {cmd}')
+            return False
+
+    def openCockpit(self, page_path, page_data, env):
+        url = ENVLIST[env]['domain']['pc'] + CMSLSIT['Sitecore_PROD']['checkTool'] + '/?' + page_path + '/'
+        account = ENVLIST[env]['account']
+        password = ENVLIST[env]['password']
+        url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
+        self.webOpen(url_auth)
+
+        try:
+            request = self.sc.createRequest(url, account, password)
+            data = self.sc.getUrlResponse(request, url)
+        except:
+            console.error(self.app_name, f'request failed. : {url_auth}')
+        else:
+            self.openWinMergeWithCockpit(data, page_data)
+
+    def openWinMergeWithCockpit(self, data, page_data):
+        soup = BeautifulSoup(data,'html.parser')
+        codeboxList = [tag.text for tag in soup.find_all(class_='codebox')]
+        current_dir = os.getcwd()
+        localcode_pc = self.fc.creanPath(current_dir + self.localcode_pc)
+        localcode_sp = self.fc.creanPath(current_dir + self.localcode_sp)
+        conten_pc = self.fc.creanPath(current_dir + self.conten_pc)
+        conten_sp = self.fc.creanPath(current_dir + self.conten_sp)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[0]), localcode_pc)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[1]), localcode_sp)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[2]), conten_pc)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[3]), conten_sp)
+
+        if not len(page_data['loacalcode']) == 0:
+            self.winMergeOpen(localcode_pc)
+            self.winMergeOpen(localcode_sp)
+
+        if not len(page_data['article']) == 0:
+            self.winMergeOpen(conten_pc)
+            self.winMergeOpen(conten_sp)
+
+    def preview(self, page_dir):
+        url = CMSLSIT['Sitecore_PROD']['preview'] + page_dir + '/'
+        account =  CMSLSIT['Sitecore_PROD']['account']
+        password =  CMSLSIT['Sitecore_PROD']['password']
+        url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
+        self.webOpen(url)
+
+
+class showMessage():
+    def __init__(self, data):
+        self.app_name = __class__.__name__
+        self.data = data
+        return
+
+    def showEnd(self, page_count):
+        console.log(self.app_name, '')
+        console.log(self.app_name, f'({page_count}/{len(self.data)}) Page List')
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+
+        self.showList(self.data)
+
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+        console.log(self.app_name, '                Completed.')
+        console.log(self.app_name, '')
+
+        input('Did you close all sandbox folder? : ')
+        return
+
+    def showStart(self, page_count):
+        console.log(self.app_name, '')
+        console.log(self.app_name, f'({page_count}/{len(self.data)}) Page List')
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+
+        self.showList(self.data)
+
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+        console.log(self.app_name, '')
+
+    def showData(self, page_dir, page_count):
+        page_data = self.data[page_dir]
+
+        console.log(self.app_name, '')
+        console.log(self.app_name, f'({page_count}/{len(self.data)})')
+        console.log(self.app_name, f'{page_dir}')
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+        console.log(self.app_name, f'   article: {len(page_data["article"])}     loacalcode: {len(page_data["loacalcode"])}')
+        console.log(self.app_name, f'   meta {len(page_data["meta"])}    html: {len(page_data["html"])}')
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+        console.log(self.app_name, f'   css: {len(page_data["css"])}    js: {len(page_data["js"])}')
+        console.log(self.app_name, f'   img: {len(page_data["img"])}')
+        console.log(self.app_name, f'   pdf: {len(page_data["pdf"])}    other: {len(page_data["other"])}')
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+        console.log(self.app_name, f'   delete: {len(page_data["delete"])}')
+        console.log(self.app_name, '-------------------------------------------------------------------------------------')
+        console.log(self.app_name, '')
+
+    def showList (self, array_lsit):
+        for item in array_lsit:
+            console.log(self.app_name, f'    {item}')
+
+
+class CmsThrow(showMessage):
+    page_count = 0
+    sandbox = '/cms-part/sandbox'
+
+    def __init__(self, data, env, cms_type):
+        super().__init__(data)
+        self.app_name = __class__.__name__
+        self.env = env
+        self.data = data
+        self.cms_type = cms_type
+
+        console.log(self.app_name, f'(init) env : {env}')
+        console.log(self.app_name, f'(init) cms : {cms_type}')
+        console.log(self.app_name, '')
+
+        self.hearinger = Hearing()
+        self.fc = FileController()
+        self.cms_c = CMSchecker(cms_type)
+        self.openExe = OpenExe()
+        return
+
+    def resetSandBox(self):
+        current_dir = os.getcwd()
+        sandbox = current_dir + self.sandbox
+        check = os.path.exists(sandbox)
+        if check == True:
+            self.fc.empty(sandbox)
+        else:
+            os.mkdir(sandbox)
+
+    def setItemPath(self, item):
+        return self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + item)
+
+    def setCloneResources(self, file_list):
+        for item in file_list:
+            origin = self.setItemPath(item)
+
+            current_dir = os.getcwd()
+            clone = self.fc.creanPath(current_dir + self.sandbox + item)
+            clone_dir = os.path.dirname(clone)
+            self.fc.copy(origin, clone)
+
+    def checkDone(self, item):
+        check = self.hearinger.select(f'(progress: {self.page_count}/{len(self.data)} ) Did you input {item} ?', ('y', 'n'), True)
+
+        if check == 'n':
+            console.log(self.app_name, f'again input {item}')
+            self.checkDone(item)
+            return
+
+        console.log(self.app_name, '')
+        return
+
+    def checkDelete(self, item):
+        check = self.hearinger.select(f'Did you delete {file_item} ?', ('y', 'n'), True)
+
+        if check == 'n':
+            console.log(self.app_name, f'again delete {item}')
+            self.checkDelete(item)
+        return
+
+    def getResouceDirList(self, file_list):
+        dir_list = []
+        for item in file_list:
+            dir_item = os.path.dirname(item)
+            dir_list.append(dir_item)
+        result_lsit = list(set(dir_list))
+        return result_lsit
+
+    def getResouceItemList(self, dir_item, file_list):
+        all_list = []
+        for item in file_list:
+            dir_name = os.path.dirname(item)
+            if dir_name == dir_item:
+                all_list.append(item)
+
+        result_lsit = list(set(all_list))
+        return result_lsit
+
+
+class CMSWIRO(CmsThrow):
+    def __init__(self, data, env, cms_type):
+        super().__init__(data, env, cms_type)
+        self.app_name = __class__.__name__
+        return
+
+    def throwArtcle(self, page_dir):
+        cms_data = self.cms_c.setCMSdata(page_dir)
+        lang = self.cms_c.checkLang(page_dir)
+        self.openExe.webOpen(cms_data[lang]['article'] + page_dir)
+
+        page_data = self.data[page_dir]
+        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
+        for file_item in file_list:
+            new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
+            self.openExe.winMergeOpen(new_content)
+            self.checkDone(file_item)
+
+    def throwResources(self, page_dir):
+        page_data = self.data[page_dir]
+        file_list = list(set(page_data['css'] + page_data['js'] + page_data['img'] + page_data['pdf'] + page_data['other']))
+
+        self.setCloneResources(file_list)
+        dir_lsit = self.getResouceDirList(file_list)
+
+        count = 0
+        for dir_item in dir_lsit:
+            current_dir = os.getcwd()
+            sandbox_item = self.fc.creanPath(current_dir + self.sandbox + dir_item)
+
+            cms_data = self.cms_c.setCMSdata(dir_item)
+            lang = self.cms_c.checkLang(page_dir)
+            url = cms_data[lang]['resources'] + dir_item
+            common_url = re.sub(r'/set/common', r'/common', url)
+            data_url = re.sub(r'/set/data', r'/data', common_url)
+            self.openExe.webOpen(data_url)
+            self.openExe.folderOpen(sandbox_item)
+
+            file_items = self.getResouceItemList(dir_item, file_list)
+            self.showList(file_items)
+            count = count + len(file_items)
+
+            self.checkDone(f'{dir_item} ({count}/{len(file_list)}, add: {len(file_items)})')
+
+    def start(self):
+        self.resetSandBox()
+        self.page_count = 1
+        self.showStart(self.page_count)
+        self.openExe.webOpen(CMSLSIT['WIRO']['WIRO']['ja']['article'])
+        check = self.hearinger.select(f'Did you login WIRO ?', ('y', 'n'), True)
+
+        for page_dir in self.data:
+            self.showData(page_dir, self.page_count)
+            self.throwArtcle(page_dir)
+            self.throwResources(page_dir)
+            self.page_count += 1
+
+        self.showEnd(self.page_count)
+        self.resetSandBox()
+        return
+
+
+class CMSSitecore(CmsThrow):
+    def __init__(self, data, env, cms_type):
+        super().__init__(data, env, cms_type)
+        self.app_name = __class__.__name__
+        return
+
+    def throwArtcle(self, page_dir):
+        page_data = self.data[page_dir]
+
+        url = self.createContenURL(page_dir)
+        self.openExe.webOpen(url)
+        self.openExe.openCockpit(page_dir, page_data, self.env)
+        self.showDirItem(page_dir)
+
+        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
+        for file_item in file_list:
+            self.checkDone(file_item)
+
+    def throwResources(self, page_dir):
+        page_data = self.data[page_dir]
+        file_list = list(set(page_data['css'] + page_data['js'] + page_data['img'] + page_data['pdf'] + page_data['other']))
+
+        self.setCloneResources(file_list)
+        dir_lsit = self.getResouceDirList(file_list)
+
+        count = 0
+        for dir_item in dir_lsit:
+            current_dir = os.getcwd()
+            sandbox_item = self.fc.creanPath(current_dir + self.sandbox + dir_item)
+
+            item_count = 0
+            for dirname, subdirs, filenames in os.walk(sandbox_item):
+                item_count = len(filenames)
+            if item_count <= 1:
+                self.openExe.folderOpen(sandbox_item)
+            else:
+                self.fc.createZip(sandbox_item)
+                self.fc.deleate(sandbox_item)
+                sandbox_item_path = Path(sandbox_item)
+                sandbox_item_path.parent
+                self.openExe.folderOpen(sandbox_item_path.parent)
+
+            file_items = self.getResouceItemList(dir_item, file_list)
+            self.showList(file_items)
+            count = count + len(file_items)
+
+            url = self.createMediaURL(dir_item)
+            self.openExe.webOpen(url)
+
+            self.showDirItem(dir_item)
+            self.checkDone(f'{dir_item} ({count}/{len(file_list)}, add: {len(file_items)})')
+
+    def showDirItem(self, page_dir):
+        print('')
+        content_editor_path = re.sub(r'/', '    ', page_dir)
+        print(content_editor_path)
+        print('')
+
+    def createContenURL(self, dir_item):
+        cms_data = self.cms_c.setCMSdata(dir_item)
+        lang = self.cms_c.checkLang(dir_item)
+        url = cms_data['search_key']['content']['key'] + dir_item + cms_data['search_key']['media'][lang]
+        return url
+        return url
+
+    def createMediaURL(self, dir_item):
+        cms_data = self.cms_c.setCMSdata(dir_item)
+        lang = self.cms_c.checkLang(dir_item)
+        url = cms_data['search_key']['media']['key'] + dir_item + cms_data['search_key']['media'][lang]
+        return url
+
+    def start(self):
+        self.resetSandBox()
+
+        self.page_count = 1
+        self.showStart(self.page_count)
+        self.openExe.webOpen(CMSLSIT[self.cms_type]['top'])
+        check = self.hearinger.select(f'Did you login Sitecore ?', ('y', 'n'), True)
+
+        for page_dir in self.data:
+            self.showData(page_dir, self.page_count)
+            page_data = self.data[page_dir]
+
+            self.throwResources(page_dir)
+            #self.throwDelete(page_dir)
+            self.throwArtcle(page_dir)
+
+            self.openExe.preview(page_dir)
+            self.hearinger.select(f'check preview "{page_dir}" ?', ('y', 'n'), True)
+            self.hearinger.select(f'check 承認依頼 "{page_dir}" ?', ('y', 'n'), True)
+
+            self.page_count += 1
+
+        self.showEnd(self.page_count)
+        self.resetSandBox()
+        return
+
+
+#
+# MAIN
+#
 class ThrowList(BacklogApi):
     data = {}
 
     def __init__(self, comment_url):
         super().__init__(comment_url)
+        self.app_name = __class__.__name__
 
         file_list = self.getUpDatedFile()
         self.throw_lists = list(set(file_list['update'] + file_list['new']))
         self.del_list = file_list['delete']
         self.env = self.getUpDatedEnv()
-        self.console = LogMater()
         self.fc = FileController()
 
     def setItemPath(self, item):
@@ -134,355 +520,16 @@ class ThrowList(BacklogApi):
             self.data[page]['other'].append(item)
             self.data[page]['other'].sort()
 
-    def getResouceDirList(self, file_list):
-        dir_list = []
-        for item in file_list:
-            dir_item = os.path.dirname(item)
-            dir_list.append(dir_item)
-        result_lsit = list(set(dir_list))
-        return result_lsit
 
-    def getResouceItemList(self, dir_item, file_list):
-        all_list = []
-        for item in file_list:
-            dir_name = os.path.dirname(item)
-            if dir_name == dir_item:
-                all_list.append(item)
-
-        result_lsit = list(set(all_list))
-        return result_lsit
-
-
-class OpenExe:
-    cms_countent = '/cms-part/now-cms-copy.inc'
-    localcode_pc = '/cms-part/now-sitecore-localcode-pc.inc'
-    localcode_sp = '/cms-part/now-sitecore-localcode-sp.inc'
-    conten_pc = '/cms-part/now-sitecore-content-pc.inc'
-    conten_sp = '/cms-part/now-sitecore-content-sp.inc'
-
-    cookipit = ''
-
-    def __init__(self, console):
-        self.fc = FileController()
-        self.sc = Scraping()
-        self.console = console
-
-    def folderOpen(self, full_path):
-        try:
-            p = subprocess.Popen(["explorer",  full_path], shell=True)
-            #print('folder open')
-        except:
-            log_msg = f'''
-
-            Folder open failed. : {full_path}
-            '''.strip()
-            self.console.log(log_msg)
-
-        #check = p.poll()
-        #if check is None:
-        #    p.kill()
-
-    def webOpen(self, url):
-        try:
-            webbrowser.open(url)
-            #print('open web')
-        except:
-            log_msg = f'''
-
-            Web site open failed. : {url}
-            '''.strip()
-            self.console.log(log_msg)
-
-    def winMergeOpen(self, new_content):
-        current_dir = os.getcwd()
-        now_cms_content = self.fc.creanPath(current_dir + self.cms_countent)
-        cmd = 'start WinMergeU ' + new_content + ' ' + now_cms_content
-        try:
-            subprocess.check_call(cmd, shell=True)
-        except:
-            log_msg = f'''
-
-            WinMerge failed. : {cmd}
-            '''.strip()
-            self.console.log(log_msg)
-            return False
-
-    def openCockpit(self, page_path, env):
-        url = ENVLIST[env]['domain']['pc'] + CMSLSIT['Sitecore_PROD']['checkTool'] + '/?' + page_path + '/'
-        account = ENVLIST[env]['account']
-        password = ENVLIST[env]['password']
-        url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
-        self.webOpen(url_auth)
-
-        try:
-            request = self.sc.createRequest(url, account, password)
-            data = self.sc.getUrlResponse(request, url)
-        except:
-            log_msg = f'''
-
-            request failed. : {url_auth}
-            '''.strip()
-            self.console.log(log_msg)
-        else:
-            self.openWinMergeWithCockpit(data)
-
-    def openWinMergeWithCockpit(self, data):
-        soup = BeautifulSoup(data,'html.parser')
-        codeboxList = [tag.text for tag in soup.find_all(class_='codebox')]
-        current_dir = os.getcwd()
-        localcode_pc = self.fc.creanPath(current_dir + self.localcode_pc)
-        localcode_sp = self.fc.creanPath(current_dir + self.localcode_sp)
-        conten_pc = self.fc.creanPath(current_dir + self.conten_pc)
-        conten_sp = self.fc.creanPath(current_dir + self.conten_sp)
-        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[0]), localcode_pc)
-        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[1]), localcode_sp)
-        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[2]), conten_pc)
-        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[3]), conten_sp)
-        self.winMergeOpen(localcode_pc)
-        self.winMergeOpen(localcode_sp)
-        self.winMergeOpen(conten_pc)
-        self.winMergeOpen(conten_sp)
-
-    def preview(self, page_dir):
-        url = CMSLSIT['Sitecore_PROD']['preview'] + page_dir + '/'
-        account =  CMSLSIT['Sitecore_PROD']['account']
-        password =  CMSLSIT['Sitecore_PROD']['password']
-        url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
-        #print(url_auth)
-        self.webOpen(url)
-
-
-class CmsThrow(ThrowList):
-    page_count = 0
-    sandbox = '/cms-part/sandbox'
-
-    def __init__(self, comment_url, cms_type='WIRO'):
+class CMSController(ThrowList):
+    def __init__(self, comment_url, cms_type):
         super().__init__(comment_url)
+        self.app_name = __class__.__name__
         self.cms_type = cms_type
-        self.hearinger = Hearing()
-        self.openExe = OpenExe(self.console)
+
+        self.cms_c = CMSchecker(cms_type)
         self.rc = ResourceChecK(comment_url, cms_type=cms_type)
         return
-
-    def checkCMSType(self):
-        check_sitecore = re.search(r'Sitecore', self.cms_type)
-        check_wiro = re.search(r'WIRO', self.cms_type)
-
-        if not check_sitecore is None:
-            return 'Sitecore'
-        elif not check_wiro is None:
-            return 'WIRO'
-        else:
-            return 'undifend'
-
-    def showEnd(self):
-        pre_msg = f'''
-        ({self.page_count}/{len(self.data)}) Page List
-        ----------------------------------------------------
-        '''.strip()
-        self.console.log(pre_msg)
-
-        self.showList(self.data)
-
-        last_msg = f'''
-                ----------------------------------------------------
-
-                Completed.
-        '''.strip()
-        self.console.log(last_msg)
-        self.console.log('')
-
-        input('Did you close all sandbox folder? : ')
-        return
-
-    def showStart(self):
-        pre_msg = f'''
-        ({self.page_count}/{len(self.data)}) Page List
-        ----------------------------------------------------
-        '''.strip()
-        self.console.log(pre_msg)
-
-        self.showList(self.data)
-
-        last_msg = f'''
-                ----------------------------------------------------
-        '''.strip()
-        self.console.log(last_msg)
-        self.console.log('')
-
-    def showData(self, page_dir):
-        page_data = self.data[page_dir]
-        log_msg = f'''
-
-        ({self.page_count}/{len(self.data)})
-        {page_dir}
-        ----------------------------------------------------
-            article: {len(page_data['article'])}     loacalcode: {len(page_data['loacalcode'])}
-            meta {len(page_data['meta'])}    html: {len(page_data['html'])}
-        ----------------------------------------------------
-            css: {len(page_data['css'])}    js: {len(page_data['js'])}
-            img: {len(page_data['img'])}
-            pdf: {len(page_data['pdf'])}    other: {len(page_data['other'])}
-        ----------------------------------------------------
-            delete: {len(page_data['delete'])}
-        ----------------------------------------------------
-
-        '''.strip()
-        self.console.log(log_msg)
-
-    def showList (self, array_lsit):
-        for item in array_lsit:
-            msg = f'''
-            {item}
-            '''.strip()
-            self.console.log(item)
-
-    def throwArtcle(self, page_dir):
-        page_data = self.data[page_dir]
-        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
-        check_cms_type = self.checkCMSType()
-        for file_item in file_list:
-            if check_cms_type == 'WIRO':
-                new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
-                self.openExe.winMergeOpen(new_content)
-            self.checkDone(file_item)
-
-    def setCloneResources(self, file_list):
-        for item in file_list:
-            origin = self.setItemPath(item)
-
-            current_dir = os.getcwd()
-            clone = self.fc.creanPath(current_dir + self.sandbox + item)
-            clone_dir = os.path.dirname(clone)
-            self.fc.copy(origin, clone)
-
-    def throwResources(self, page_dir):
-        page_data = self.data[page_dir]
-        file_list = list(set(page_data['css'] + page_data['js'] + page_data['img'] + page_data['pdf'] + page_data['other']))
-
-        self.setCloneResources(file_list)
-        dir_lsit = self.getResouceDirList(file_list)
-
-        count = 0
-        for dir_item in dir_lsit:
-            current_dir = os.getcwd()
-            sandbox_item = self.fc.creanPath(current_dir + self.sandbox + dir_item)
-
-            check_cms_type = self.checkCMSType()
-            if check_cms_type == 'WIRO':
-                url = CMSLSIT[self.cms_type]['resources'] + dir_item
-                data_url = re.sub(r'/set/data', r'/data', url)
-                self.openExe.webOpen(data_url)
-                self.openExe.folderOpen(sandbox_item)
-            elif check_cms_type == 'Sitecore':
-                item_count = 0
-                for dirname, subdirs, filenames in os.walk(sandbox_item):
-                    item_count = len(filenames)
-                if item_count <= 1:
-                    self.openExe.folderOpen(sandbox_item)
-                else:
-                    self.fc.createZip(sandbox_item)
-                    self.fc.deleate(sandbox_item)
-                    sandbox_item_path = Path(sandbox_item)
-                    sandbox_item_path.parent
-                    self.openExe.folderOpen(sandbox_item_path.parent)
-
-            file_items = self.getResouceItemList(dir_item, file_list)
-            self.showList(file_items)
-            count = count + len(file_items)
-            if check_cms_type == 'Sitecore':
-                self.console.log('')
-                media_library_path = re.sub(r'/', '    ', dir_item)
-                self.console.log(media_library_path)
-                self.console.log('')
-            self.checkDone(f'{dir_item} ({count}/{len(file_list)}, add: {len(file_items)})')
-
-    def throwDelete(self, page_dir):
-        page_data = self.data[page_dir]['delete']
-        count = 0
-
-        check_cms_type = self.checkCMSType()
-
-        for file_item in page_data:
-            if check_cms_type == 'WIRO':
-                url = CMSLSIT[self.cms_type]['resources'] + dir_item
-                self.openExe.webOpen(url)
-
-            self.checkDelete(f'{file_item} ({count}/{len(page_data)})')
-            count += 1
-
-    def checkDone(self, item):
-        #self.console.log(f'\nDid you input {item} ?')
-        check = self.hearinger.select(f'(progress: {self.page_count}/{len(self.data)} ) Did you input {item} ?', ('y', 'n'), True)
-        #self.console.log(check)
-
-        if check == 'n':
-            self.console.log(f'again input {item}')
-            self.checkDone(item)
-            return
-
-        self.console.log('')
-
-    def checkDelete(self, item):
-        #self.console.log(f'\nDid you delete {item} ?')
-        check = self.hearinger.select(f'Did you delete {file_item} ?', ('y', 'n'), True)
-        #self.console.log(check)
-
-        if check == 'n':
-            self.console.log(f'again delete {item}')
-            self.checkDelete(item)
-
-    def throwSitecore(self):
-        self.page_count = 1
-        self.showStart()
-        self.openExe.webOpen(CMSLSIT[self.cms_type]['article'])
-        self.openExe.webOpen(CMSLSIT[self.cms_type]['resources'])
-        check = self.hearinger.select(f'Did you login Sitecore PROD ?', ('y', 'n'), True)
-
-        for page_dir in self.data:
-            self.showData(page_dir)
-
-            self.throwResources(page_dir)
-            #self.throwDelete(page_dir)
-
-            self.openExe.openCockpit(page_dir, self.env)
-
-            self.console.log('')
-            content_editor_path = re.sub(r'/', '    ', page_dir)
-            self.console.log(content_editor_path)
-            self.console.log('')
-
-            self.throwArtcle(page_dir)
-
-            self.openExe.preview(page_dir)
-            self.openExe.preview(page_dir)
-            self.hearinger.select(f'check preview "{page_dir}" ?', ('y', 'n'), True)
-
-            self.page_count += 1
-
-    def throwWIRO(self):
-        self.page_count = 1
-        self.showStart()
-        self.openExe.webOpen(CMSLSIT[self.cms_type]['article'])
-        check = self.hearinger.select(f'Did you login WIRO ?', ('y', 'n'), True)
-
-        for page_dir in self.data:
-            self.showData(page_dir)
-            url = CMSLSIT[self.cms_type]['article'] + page_dir + CMSLSIT[self.cms_type]['search_key']
-            self.openExe.webOpen(url)
-            self.throwArtcle(page_dir)
-            self.throwResources(page_dir)
-            self.throwDelete(page_dir)
-            self.page_count += 1
-
-    def resetSandBox(self):
-        current_dir = os.getcwd()
-        sandbox = current_dir + self.sandbox
-        check = os.path.exists(sandbox)
-        if check == True:
-            self.fc.empty(sandbox)
-        else:
-            os.mkdir(sandbox)
 
     def updataSvn(self):
         orign_dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env)
@@ -491,24 +538,25 @@ class CmsThrow(ThrowList):
         return
 
     def start(self):
-        self.resetSandBox()
         self.getPageData(self.getPageList())
-        #pprint.pprint(self.data)
 
         self.updataSvn()
 
-        check_cms_type = self.checkCMSType()
+        check_cms_type = self.cms_c.checkCMSType()
         if check_cms_type == 'WIRO':
-            self.throwWIRO()
-            self.showEnd()
-            self.resetSandBox()
-            self.rc.start()
+            console.log(self.app_name, 'Throw WIRO')
+            wiro_cms = CMSWIRO(self.data, self.env, self.cms_type)
+            wiro_cms.start()
         elif check_cms_type == 'Sitecore':
-            self.throwSitecore()
-            self.showEnd()
-            self.resetSandBox()
-            self.rc.start()
+            console.log(self.app_name, 'Throw Sitecore')
+            sitecore_cms = CMSSitecore(self.data, self.env, self.cms_type)
+            sitecore_cms.start()
         else:
-            self.resetSandBox()
             return
+
+        self.rc.start()
         return
+
+
+
+

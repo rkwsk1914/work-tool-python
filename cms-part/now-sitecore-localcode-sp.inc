@@ -1,1 +1,1 @@
-<script>window.SB_PAGE = window.SB_PAGE || {};window.SB_PAGE.TICKER = false;</script><!-- 統合CSS --><link rel="stylesheet" href="/site/set/common/s/css/tk-modules.css"><!-- 統合CSS --><!-- 個別ファイル --><meta name="robots" content="noindex, nofollow, noarchive"><link rel="stylesheet" href="/mobile/set/data/special/cSuxmDaH01/css/s/substyle.css?20180920"><!-- 個別ファイル --><!-- SNSボタン --><script src="//cdn.softbank.jp/mobile/set/common/p/js/sns_component.js" type="text/javascript"></script><!-- SNSボタン -->
+wiro_pcタグ、wiro_spタグ、wiro_includeタグが存在しなかったのでPC版の出力と同じです。

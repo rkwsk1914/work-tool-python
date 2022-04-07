@@ -9,14 +9,16 @@ from modules.common.svn import SvnConroller
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 
+console = LogMater('Merge')
+
 class Merge(BacklogApi):
 
     def __init__(self, comment_url, merge_env):
         super().__init__(comment_url)
+        self.app_name = __class__.__name__
         self.file_list = self.getUpDatedFile()
         self.origin_env = self.getUpDatedEnv()
         self.merge_env = merge_env
-        self.console = LogMater()
         self.fc = FileController()
 
     def setItemPath(self, env, item):
@@ -34,7 +36,7 @@ class Merge(BacklogApi):
             {orign_item}
             {merge_item}
             '''.strip()
-            self.console.log(log_msg)
+            console.log(self.app_name, log_msg)
 
     def doMerge(self, item):
         orign_item = self.setItemPath(self.origin_env, item)
@@ -59,7 +61,7 @@ class Merge(BacklogApi):
             {orign_item}
             {merge_item}
             '''.strip()
-            self.console.log(log_msg)
+            console.log(self.app_name, log_msg)
         return
 
     def winmerge(self, orign_item, merge_item):
@@ -73,7 +75,7 @@ class Merge(BacklogApi):
             {orign_item}
             {merge_item}
             '''.strip()
-            self.console.log(log_msg)
+            console.log(self.app_name, log_msg)
             return False
         return True
 
@@ -87,7 +89,7 @@ class Merge(BacklogApi):
             Delete:
             {merge_item}
             '''.strip()
-            self.console.log(log_msg)
+            console.log(self.app_name, log_msg)
 
     def updataSvn(self):
         orign_dir = self.setItemPath(self.origin_env, '')
@@ -109,7 +111,7 @@ class Merge(BacklogApi):
         Start.
 
         '''.strip()
-        self.console.log(start_msg)
+        console.log(self.app_name, start_msg)
 
         for item in self.file_list['update']:
             self.doMerge(item)
@@ -125,5 +127,5 @@ class Merge(BacklogApi):
         Completed.
 
         '''.strip()
-        self.console.log(end_msg)
+        console.log(self.app_name, end_msg)
         return
