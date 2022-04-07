@@ -1,0 +1,11 @@
+対象箇所,tag,href,class,属性,第一引数category,第二引数action,第三引数label,イベントタグ
+SoftBank 光＞詳しく知りたい方はこちら,a,/internet/special/sbhikari-01/,,onclick,[YBB]_インターネット,button,共通から光詳しくみる,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','共通から光詳しくみる')"""
+SoftBank Air（Airターミナル4）＞詳しく知りたい方はこちら,a,,,onclick,[YBB]_インターネット,button,共通からAir4詳しくみる,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','共通からAir4詳しくみる')"""
+SoftBank Air（Airターミナル5）＞詳しく知りたい方はこちら,a,,,onclick,[YBB]_インターネット,button,共通からAir5詳しくみる,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','共通からAir5詳しくみる')"""
+最下部：SoftBank 光 ウェブでお申し込み,a,https://www.softbank.jp/ybb/special/sbhikari-01/application/,application__hikari-button,onclick,[YBB]_インターネット,button,光お申し込みA,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','光お申し込みA')"""
+最下部：SoftBank Air ウェブでお申し込み,a,,application__air-button,onclick,[YBB]_インターネット,button,Airお申し込みA,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','Airお申し込みA')"""
+Fixバナー：ウェブでお申し込み,a,,,onclick,[YBB]_インターネット,button,ウェブお申し込みFix,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','ウェブお申し込みFix')"""
+最下部：チャットで相談,a,,,onclick,[YBB]_インターネット,chat,chatA,"onclick=""_ga.spotEvent('[YBB]_インターネット','chat','chatA')"""
+最下部：0120-981-072（SPのみ）,a,,,onclick,[YBB]_インターネット,tel,telA,"onclick=""_ga.spotEvent('[YBB]_インターネット','tel','telA')"""
+Fixバナー：0120-981-072（SPのみ）,a,,,onclick,[YBB]_インターネット,tel,telFix,"onclick=""_ga.spotEvent('[YBB]_インターネット','tel','telFix')"""
+公式サイト限定キャンペーン：春到来ネット代1年分＞バナー＆詳細をみる,a,,,onclick,[YBB]_インターネット,button,春到来ネット代1年分詳しくみる,"onclick=""_ga.spotEvent('[YBB]_インターネット','button','春到来ネット代1年分詳しくみる')"""

@@ -2,6 +2,7 @@ import sys
 from modules.common.check_param import CheckParam
 from modules.app.merge import Merge
 
+
 args = sys.argv
 check_param = CheckParam()
 

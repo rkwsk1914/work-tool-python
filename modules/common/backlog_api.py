@@ -102,8 +102,15 @@ class BacklogApi(ApiControlller):
                 all_text = re_text.group()
                 without_pre_text = re.sub(r'\*\*\*キャッシュ対策するファイル ※pdfを除くリソース\n\{code\}\n', '', all_text)
                 flie_data_text = re.sub(r'\n\{/code\}', '', without_pre_text)
-            return flie_data_text
-        return None
+
+                result = re.split('\n', flie_data_text)
+                num = len(result) - 1
+
+                if result[num] == '':
+                    result.pop(-1)
+                return result
+            return []
+        return []
 
     def getUpDatedFile(self):
 

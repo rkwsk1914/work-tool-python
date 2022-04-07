@@ -1,4 +1,9 @@
-node_modules
+config
+*/**/config
+__pycache__
 */**/__pycache__
-modules/config
+*/**/*.txt
 sample.py
+build
+log
+*/**/log

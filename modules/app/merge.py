@@ -5,6 +5,7 @@ import os
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
 from modules.common.backlog_api import BacklogApi
+from modules.common.svn import SvnConroller
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 
@@ -88,9 +89,20 @@ class Merge(BacklogApi):
             '''.strip()
             self.console.log(log_msg)
 
+    def updataSvn(self):
+        orign_dir = self.setItemPath(self.origin_env, '')
+        merge_dir = self.setItemPath(self.merge_env, '')
+        orign_svn = SvnConroller(orign_dir)
+        merge_svn = SvnConroller(merge_dir)
+        orign_svn.update()
+        merge_svn.update()
+        return
+
     def start(self):
         if self.origin_env is None:
             return
+
+        self.updataSvn()
 
         start_msg = f'''
 

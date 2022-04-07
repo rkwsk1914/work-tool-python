@@ -4,11 +4,15 @@ import os
 import pprint
 import webbrowser
 from pathlib import Path
+from bs4 import BeautifulSoup
 
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
 from modules.common.hearing import Hearing
 from modules.common.backlog_api import BacklogApi
+from modules.common.scraping import Scraping
+from modules.common.svn import SvnConroller
+from modules.app.resourcs_check import ResourceChecK
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.config.db import CMSLSIT
@@ -151,10 +155,16 @@ class ThrowList(BacklogApi):
 
 class OpenExe:
     cms_countent = '/cms-part/now-cms-copy.inc'
+    localcode_pc = '/cms-part/now-sitecore-localcode-pc.inc'
+    localcode_sp = '/cms-part/now-sitecore-localcode-sp.inc'
+    conten_pc = '/cms-part/now-sitecore-content-pc.inc'
+    conten_sp = '/cms-part/now-sitecore-content-sp.inc'
+
     cookipit = ''
 
     def __init__(self, console):
         self.fc = FileController()
+        self.sc = Scraping()
         self.console = console
 
     def folderOpen(self, full_path):
@@ -183,9 +193,8 @@ class OpenExe:
             '''.strip()
             self.console.log(log_msg)
 
-    def winMergeOpen(self, fulll_path, env):
+    def winMergeOpen(self, new_content):
         current_dir = os.getcwd()
-        new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + env + '/' + fulll_path)
         now_cms_content = self.fc.creanPath(current_dir + self.cms_countent)
         cmd = 'start WinMergeU ' + new_content + ' ' + now_cms_content
         try:
@@ -203,15 +212,44 @@ class OpenExe:
         account = ENVLIST[env]['account']
         password = ENVLIST[env]['password']
         url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
+        self.webOpen(url_auth)
+
         try:
-            webbrowser.open(url_auth)
-            #print('open web')
+            request = self.sc.createRequest(url, account, password)
+            data = self.sc.getUrlResponse(request, url)
         except:
             log_msg = f'''
 
-            Web site open failed. : {url_auth}
+            request failed. : {url_auth}
             '''.strip()
             self.console.log(log_msg)
+        else:
+            self.openWinMergeWithCockpit(data)
+
+    def openWinMergeWithCockpit(self, data):
+        soup = BeautifulSoup(data,'html.parser')
+        codeboxList = [tag.text for tag in soup.find_all(class_='codebox')]
+        current_dir = os.getcwd()
+        localcode_pc = self.fc.creanPath(current_dir + self.localcode_pc)
+        localcode_sp = self.fc.creanPath(current_dir + self.localcode_sp)
+        conten_pc = self.fc.creanPath(current_dir + self.conten_pc)
+        conten_sp = self.fc.creanPath(current_dir + self.conten_sp)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[0]), localcode_pc)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[1]), localcode_sp)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[2]), conten_pc)
+        self.fc.writing(re.sub(r'^\r\n', '',codeboxList[3]), conten_sp)
+        self.winMergeOpen(localcode_pc)
+        self.winMergeOpen(localcode_sp)
+        self.winMergeOpen(conten_pc)
+        self.winMergeOpen(conten_sp)
+
+    def preview(self, page_dir):
+        url = CMSLSIT['Sitecore_PROD']['preview'] + page_dir + '/'
+        account =  CMSLSIT['Sitecore_PROD']['account']
+        password =  CMSLSIT['Sitecore_PROD']['password']
+        url_auth = re.sub(r'https://', f'https://{account}:{password}@', url)
+        #print(url_auth)
+        self.webOpen(url)
 
 
 class CmsThrow(ThrowList):
@@ -223,6 +261,8 @@ class CmsThrow(ThrowList):
         self.cms_type = cms_type
         self.hearinger = Hearing()
         self.openExe = OpenExe(self.console)
+        self.rc = ResourceChecK(comment_url, cms_type=cms_type)
+        return
 
     def checkCMSType(self):
         check_sitecore = re.search(r'Sitecore', self.cms_type)
@@ -300,8 +340,11 @@ class CmsThrow(ThrowList):
     def throwArtcle(self, page_dir):
         page_data = self.data[page_dir]
         file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
+        check_cms_type = self.checkCMSType()
         for file_item in file_list:
-            self.openExe.winMergeOpen(file_item, self.env)
+            if check_cms_type == 'WIRO':
+                new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
+                self.openExe.winMergeOpen(new_content)
             self.checkDone(file_item)
 
     def setCloneResources(self, file_list):
@@ -399,16 +442,22 @@ class CmsThrow(ThrowList):
         for page_dir in self.data:
             self.showData(page_dir)
 
+            self.throwResources(page_dir)
+            #self.throwDelete(page_dir)
+
+            self.openExe.openCockpit(page_dir, self.env)
+
             self.console.log('')
             content_editor_path = re.sub(r'/', '    ', page_dir)
             self.console.log(content_editor_path)
             self.console.log('')
 
-            self.throwResources(page_dir)
-            self.throwDelete(page_dir)
-
-            self.openExe.openCockpit(page_dir, self.env)
             self.throwArtcle(page_dir)
+
+            self.openExe.preview(page_dir)
+            self.openExe.preview(page_dir)
+            self.hearinger.select(f'check preview "{page_dir}" ?', ('y', 'n'), True)
+
             self.page_count += 1
 
     def throwWIRO(self):
@@ -435,20 +484,31 @@ class CmsThrow(ThrowList):
         else:
             os.mkdir(sandbox)
 
+    def updataSvn(self):
+        orign_dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env)
+        orign_svn = SvnConroller(orign_dir)
+        orign_svn.update()
+        return
+
     def start(self):
         self.resetSandBox()
         self.getPageData(self.getPageList())
         #pprint.pprint(self.data)
 
+        self.updataSvn()
+
         check_cms_type = self.checkCMSType()
         if check_cms_type == 'WIRO':
             self.throwWIRO()
+            self.showEnd()
+            self.resetSandBox()
+            self.rc.start()
         elif check_cms_type == 'Sitecore':
             self.throwSitecore()
+            self.showEnd()
+            self.resetSandBox()
+            self.rc.start()
         else:
             self.resetSandBox()
             return
-
-        self.showEnd()
-        self.resetSandBox()
         return

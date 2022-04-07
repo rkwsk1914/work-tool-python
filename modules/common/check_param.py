@@ -9,14 +9,14 @@ from modules.config.setup import SOFTBANK_DOMAIN
 class CheckParam:
     def checkUrl(self, args, msg, num):
         comment_url = ''
-        url_check = False
+        check = False
 
         if len(args) > num:
-            check = re.search(SOFTBANK_DOMAIN, args[num])
-            if not check is None:
-                url_check = True
+            check_resExp= re.search(SOFTBANK_DOMAIN, args[num])
+            if not check_resExp is None:
+                check = True
 
-        if url_check == False:
+        if check == False:
             hearinger = Hearing()
             comment_url = hearinger.validateInclude(msg, SOFTBANK_DOMAIN)
         else:
@@ -28,8 +28,8 @@ class CheckParam:
         url_check = False
 
         if len(args) > num:
-            check = re.search(r'https://sbweb.backlog.jp', args[num])
-            if not check is None:
+            check_resExp= re.search(r'https://sbweb.backlog.jp', args[num])
+            if not check_resExp is None:
                 url_check = True
 
         if url_check == False:
@@ -78,16 +78,33 @@ class CheckParam:
 
     def check(self, args, msg, num, regexp):
         answer = ''
-        url_check = False
+        check = False
 
         if len(args) > num:
-            check = re.search(regexp, args[num])
-            if not check is None:
-                url_check = True
+            check_resExp= re.search(regexp, args[num])
+            if not check_resExp is None:
+                check = True
 
-        if url_check == False:
+        if check == False:
             hearinger = Hearing()
             answer = hearinger.validateInclude(msg, regexp)
+        else:
+            answer = args[num]
+        return answer
+
+    def checkFormat(self, args, msg, num, regexp, error_msg):
+        answer = ''
+        check = False
+
+        if len(args) > num:
+            pattern = re.compile(r'^' + regexp + r'$')
+            check_resExp = pattern.match(args[num])
+            if not check_resExp is None:
+                check = True
+
+        if check == False:
+            hearinger = Hearing()
+            answer = hearinger.validateFormat(msg, regexp, error_msg)
         else:
             answer = args[num]
         return answer

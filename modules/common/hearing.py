@@ -16,8 +16,26 @@ class Hearing:
             check = True
 
         if check == False:
+            print('')
             print(f'The word "{regExp}" is not included. Please enter again.')
             answer = self.validateInclude(msg, regExp)
+        return answer
+
+    def validateFormat(self, msg, regExp, error_msg):
+        hearing_msg = msg + ' : '
+        answer = input(hearing_msg)
+
+        pattern = re.compile(r'^' + regExp + r'$')
+        check_resExp = pattern.match(answer)
+
+        check = False
+        if not check_resExp is None:
+            check = True
+
+        if check == False:
+            print('')
+            print(error_msg)
+            answer = self.validateFormat(msg, regExp, error_msg)
         return answer
 
     def creatSelectionMsg(self, msg, selections):
@@ -48,21 +66,8 @@ class Hearing:
                 check = True
 
         if check == False:
+            print('')
             print('Unknown choice. Please select again.')
             answer = self.select(msg, selections)
-
-        return answer
-
-    def selectAgain(self, msg, selections):
-        answer = input(msg)
-        check = False
-
-        for select in selections:
-            if select == answer:
-                check = True
-
-        if check == False:
-            print('Unknown choice. Please select again.')
-            answer = self.selectAgain(msg, selections)
 
         return answer

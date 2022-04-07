@@ -22,6 +22,13 @@ class FileController:
         crean_path = re.sub(r'\\\\', r"\\", crean_path)
         return crean_path
 
+    def createNewFile(self, flie_full_path):
+        try:
+            with open(flie_full_path, "x", encoding="utf8") as f:
+                f.write("")
+        except FileExistsError:
+            return
+
     def addWrite(self, line, flie_full_path):
         with open(flie_full_path, 'a') as f:
             print(line, file=f)
@@ -33,6 +40,12 @@ class FileController:
     def reading(self, flie_full_path):
         f = open(flie_full_path, 'r', encoding="utf8", errors='ignore')
         lines = f.readlines()
+        f.close()
+        return lines
+
+    def readingOneline(self, flie_full_path):
+        f = open(flie_full_path, 'r', encoding="utf8", errors='ignore')
+        lines = f.read()
         f.close()
         return lines
 
@@ -111,7 +124,7 @@ class FileController:
     def checkCodeFile(self, path):
         data = os.path.splitext(path)
         #print(data[1])
-        extends = re.sub(r'\.', '', data[1])
+        extends = re.sub(r'\.|\s', '', data[1])
         #print(f'extends: {extends}')
         if extends == 'inc' \
             or extends == 'php' \
@@ -129,4 +142,50 @@ class FileController:
             return True
         return False
 
+    def checkTextFile(self, path):
+        data = os.path.splitext(path)
+        #print(data[1])
+        extends = re.sub(r'\.|\s', '', data[1])
+        #print(f'extends: {extends}')
+        if extends == 'inc' \
+            or extends == 'php' \
+            or extends == 'txt' \
+            or extends == 'html' \
+            or extends == 'json' \
+            or extends == 'jsonp' \
+            or extends == 'js' \
+            or extends == 'jsx' \
+            or extends == 'ts' \
+            or extends == 'tsx' \
+            or extends == 'vue' \
+            or extends == 'csv' \
+            or extends == 'css' \
+            or extends == 'sass' \
+            or extends == 'scss':
+            return True
+        return False
+
+    def checkAssetFile(self, path):
+        data = os.path.splitext(path)
+        extends = re.sub(r'\.|\s', '', data[1])
+        #print(extends)
+        if extends == 'css' \
+            or extends == 'js' \
+            or extends == 'json' \
+            or extends == 'jsonp' \
+            or extends == 'csv' \
+            or extends == 'png' \
+            or extends == 'PNG' \
+            or extends == 'jpg' \
+            or extends == 'jpeg' \
+            or extends == 'JPG' \
+            or extends == 'JPEG' \
+            or extends == 'pjp' \
+            or extends == 'pjpeg' \
+            or extends == 'jfif' \
+            or extends == 'jpe' \
+            or extends == 'gif' \
+            or extends == 'svg':
+                return True
+        return False
 

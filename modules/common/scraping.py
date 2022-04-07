@@ -1,6 +1,9 @@
 import chromedriver_binary
 from selenium import webdriver
 from time import sleep
+import urllib.request
+import base64
+
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from subprocess import CREATE_NO_WINDOW
@@ -8,6 +11,9 @@ from subprocess import CREATE_NO_WINDOW
 
 class Scraping:
     def __init__(self):
+        return
+
+    def initWebDriver(self):
         print('')
         print(f'Now starting chromedriver ...')
         self.driver_sp = self.initiPhone()
@@ -58,3 +64,26 @@ class Scraping:
         print('')
         print(f'chromedriver close')
         return
+
+    def createRequest(self, url, username, password):
+        # Basic認証用の文字列を作成.
+        basic_user_and_pasword = base64.b64encode('{}:{}'.format(username, password).encode('utf-8'))
+
+        # Basic認証付きの、GETリクエストを作成する.
+        request = urllib.request.Request(url,
+            headers={"Authorization": "Basic " + basic_user_and_pasword.decode('utf-8')})
+        return request
+
+    def getUrlResponse(self, request, url):
+        response = None
+        data = ''
+        try:
+            response = urllib.request.urlopen(request)
+        except urllib.error.URLError as e:
+            self.console.log(f'    {e.reason} : {url}')
+        else:
+            data = response.read()
+        finally:
+            if response:
+                response.close()
+        return data

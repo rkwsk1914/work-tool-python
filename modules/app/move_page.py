@@ -6,6 +6,7 @@ import os
 from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
 from modules.common.backlog_api import BacklogApi
+from modules.common.svn import SvnConroller
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.config.setup import SOFTBANK_DOMAIN
@@ -30,9 +31,12 @@ class MovePage():
         parent_prefox = re.search(rep_parent_prefox, url).group()
 
         rep = re.compile(SOFTBANK_DOMAIN + r'\/')
-        parent = re.sub(rep, '', parent_prefox)
+        parent = '/' + re.sub(rep, '', parent_prefox)
         setData = parent + '/set/data'
+        #print(dir)
+        #print(setData)
         setDir = re.sub(parent, setData, dir)
+        #print(setDir)
         return setDir
 
     def getChildDir(self, path):
@@ -86,11 +90,20 @@ class MovePage():
             clone_path = re.sub(self.creanCodingPath(previous), self.creanCodingPath(destination), origin_path)
             origin = self.fc.creanPath(origin_path)
             clone = self.fc.creanPath(clone_path)
-            self.fc.copy(origin, clone)
+            previous_text = re.search(r'^/(\w|\-|\_)+/', self.getDir(self.previous_url)).group()
+            destination_text = re.search(r'^/(\w|\-|\_)+/', self.getDir(self.destination_url)).group()
 
-            check_code = self.fc.checkCodeFile(clone)
+            check_code = self.fc.checkCodeFile(origin)
             if check_code == True:
-                self.reWrite(clone, previous_setdata_text, destination_setdata_text)
+                self.reWrite(origin, previous_setdata_text, destination_setdata_text)
+                self.reWrite(origin, previous_text, destination_text)
+
+                self.fc.copy(origin, clone)
+
+                self.reWrite(origin, destination_setdata_text, previous_setdata_text)
+                self.reWrite(origin, destination_text, previous_text)
+            else:
+                self.fc.copy(origin, clone)
 
     def reWrite(self, file, previous_setdata_text, destination_setdata_text):
         new_data = []
@@ -103,6 +116,8 @@ class MovePage():
         return
 
     def start(self):
+        self.updataSvn()
+
         previous = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.previous_env + self.getDir(self.previous_url))
         previous_setdata = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.previous_env  + self.getSetData(self.previous_url))
 
@@ -121,3 +136,12 @@ class MovePage():
 
         self.moveAndReWrite(article_list, previous, destination, previous_setdata_text, destination_setdata_text)
         self.moveAndReWrite(setdata_list, previous_setdata, destination_setdata, previous_setdata_text, destination_setdata_text)
+
+    def updataSvn(self):
+        orign_dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.previous_env)
+        merge_dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.destination_env)
+        orign_svn = SvnConroller(orign_dir)
+        merge_svn = SvnConroller(merge_dir)
+        orign_svn.update()
+        merge_svn.update()
+        return
