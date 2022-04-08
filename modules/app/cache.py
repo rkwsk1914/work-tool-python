@@ -82,10 +82,23 @@ class CacheSVN():
             i += 1
         return file_list
 
+    def getCacheList(self, file_list):
+        result = []
+        for file_item in file_list:
+
+            isAsset = self.fc.checkAssetFile(file_item)
+            if isAsset == True:
+
+                isSrc = re.search(r'/src/', file_item)
+                if isSrc is None:
+                    result.append(file_item)
+        return result
+
     def start(self):
         cmd = self.setSVNCommand()
         console.log(self.app_name, f'do command "{cmd}"')
-        file_list = self.doCheckSvn(cmd)
+        updata_list = self.doCheckSvn(cmd)
+        file_list = self.getCacheList(updata_list)
         return file_list
 
 
@@ -105,7 +118,7 @@ class FileListMaker():
 
         for curDir, dirs, files in os.walk(dir):
             check_ignore = re.search(r'node_modules|\.git|\.svn', curDir)
-            #check_ignore = re.search(r'node_modules|\.git|\.svn|_lab', curDir)
+            #check_ignore = re.search(r'node_modules|\.git|\.svn|', curDir)
 
             if check_ignore is None:
                 self.getFileList(curDir)
@@ -275,8 +288,6 @@ class Cache():
 
 
 class CacheBacklog(BacklogApi):
-    count = 0
-
     def __init__(self, comment_url, param):
         super().__init__(comment_url)
         self.app_name = __class__.__name__
@@ -284,8 +295,42 @@ class CacheBacklog(BacklogApi):
         self.env = self.getUpDatedEnv()
         self.param = param
         self.fc = FileController()
-        self.files = []
 
-        console.log(self.app_name, f'env : {self.env}')
-        console.log(self.app_name, f'param : {self.param}')
+        print()
+        console.log(self.app_name, f'(Init) from Backlog.')
+        self.cc = Cache(self.env, self.param)
+        return
+
+    async def start(self):
+        console.log(self.app_name, 'start')
+        start = time.time()
+
+        if len(self.cache_list) < 1:
+            print('')
+            console.log(self.app_name, 'No cache target.')
+            hearinger = Hearing()
+            answer = hearinger.select('\n終了しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=True)
+            return
+
+        self.cc.ms.showList('cache target list', self.cache_list)
+
+        code_files = self.cc.flm.walkTree()
+        self.cc.count = len(code_files)
+
+        files = self.cc.grep(code_files)
+
+        end = time.time()
+        delta = end - start
+
+        self.cc.ms.showList('updata file list', files)
+        self.cc.upDateChahe(files)
+
+        console.log(self.app_name, f'processing time: {format(round(delta,3))}')
+        console.log(self.app_name, f'Number of files: {self.cc.count}')
+        console.log(self.app_name, 'end')
+
+        hearinger = Hearing()
+        print('\n必ずコミット前に必ず上記ファイル（↑ updata file list）の差分を確認してください。')
+        answer = hearinger.select('Please answer ==> ', ['y', 'n', 'yes', 'no'])
+        console.log(self.app_name, f'Confirm recognition of differences before updating SVN. : {answer}')
         return
