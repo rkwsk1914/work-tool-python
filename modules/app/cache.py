@@ -57,6 +57,7 @@ class CacheSVN():
         data = stdout.decode('utf-8')
 
         data_list = re.split(r'\n', data)
+        #pprint.pprint(data_list)
 
         file_list = []
         i = 0
@@ -65,10 +66,12 @@ class CacheSVN():
 
             if not check_M is None:
                 item_path = re.sub(r'M\s{7}', '', data_list[i])
+                """
                 check_asset_item = self.fc.checkAssetFile(self.fc.creanPath(item_path))
                 if check_asset_item == False:
                     i += 1
                     continue
+                """
 
                 data_item = re.sub(r'\\', '/', data_list[i])
                 reg_env_path = re.sub(r'\\', '/', self.envPath)
@@ -108,6 +111,22 @@ class FileListMaker():
                 isSrc = re.search(r'/src/', file_item)
                 if isSrc is None:
                     result.append(file_item)
+        return result
+
+    def getAllUpdataHTMLList(self, file_list):
+        #pprint.pprint(file_list)
+        result = []
+        dir = DEVELOPMENT_ENVIRONMENT + '/' + self.env
+        for file_item in file_list:
+            isWiro = re.search(r'wiro_localcode.inc|wiro_content.inc', file_item)
+            isHTML = re.search(r'\.html', file_item)
+            if not isWiro is None:
+                wiro_localcode = re.sub(r'wiro_localcode.inc|wiro_content.inc', 'wiro_localcode.inc', file_item)
+                wiro_content = re.sub(r'wiro_localcode.inc|wiro_content.inc', 'wiro_content.inc', file_item)
+                result.append(self.fc.creanPath(dir + wiro_localcode))
+                result.append(self.fc.creanPath(dir + wiro_content))
+            elif not isHTML is None:
+                result.append(self.fc.creanPath(dir + file_item))
         return result
 
     def walkTree(self):
@@ -220,9 +239,29 @@ class Cache():
         self.fc.writing(new_data, file)
         return
 
-    def upDateChahe(self, files):
+    def rewriteAllAssetCode(self, file):
+        new_data = []
+
+        data = self.fc.reading(file)
+        for line in data:
+            new_line = line
+
+            isline = re.search(r'/((\w|\-|\_)+/)+(\w|\-|\_)+\.\w+(\?(\w|\-|\_)+)?', line)
+            if not isline is None:
+                isline.group()
+                new_code = re.search(r'/((\w|\-|\_)+/)+(\w|\-|\_)+\.\w+', line).group() + '?' + self.param
+                new_line = re.sub(r'/((\w|\-|\_)+/)+(\w|\-|\_)+\.\w+(\?(\w|\-|\_)+)?', new_code, line)
+
+            new_data.append(new_line)
+        self.fc.writing(new_data, file)
+        return
+
+    def upDateChahe(self, files, mode="normal"):
         for file in files:
-            self.reWrite(file)
+            if mode == 'all':
+                self.rewriteAllAssetCode(file)
+            else:
+                self.reWrite(file)
         return
 
     def grep(self, code_files):
@@ -255,8 +294,9 @@ class Cache():
 
         updata_list = self.csvn.start()
         self.cache_list = self.flm.getCacheList(updata_list)
+        self.all_cache_html_list = self.flm.getAllUpdataHTMLList(updata_list)
 
-        if len(self.cache_list) < 1:
+        if len(self.cache_list) < 1 and len(self.all_cache_html_list) < 1:
             print('')
             console.log(self.app_name, 'No cache target.')
             hearinger = Hearing()
@@ -273,8 +313,11 @@ class Cache():
         end = time.time()
         delta = end - start
 
-        self.ms.showList('updata file list', files)
+        self.ms.showList('List to update target\'s caches', files)
         self.upDateChahe(files)
+
+        self.ms.showList('HTML ist to update all caches', self.all_cache_html_list)
+        self.upDateChahe(self.all_cache_html_list, mode="all")
 
         console.log(self.app_name, f'processing time: {format(round(delta,3))}')
         console.log(self.app_name, f'Number of files: {self.count}')
@@ -294,6 +337,10 @@ class CacheBacklog(BacklogApi):
         self.cache_target_list = self.getCacheList()
         self.env = self.getUpDatedEnv()
         self.param = param
+
+        file_list = self.getUpDatedFile()
+        self.throw_lists = file_list['update']
+
         self.fc = FileController()
 
         print()
@@ -305,17 +352,17 @@ class CacheBacklog(BacklogApi):
         console.log(self.app_name, 'start')
         start = time.time()
 
-        self.cache_target_list = self.csvn.start()
-        self.cache_list = self.flm.getCacheList(self.cache_target_list)
+        self.cc.cache_list = self.cc.flm.getCacheList(self.cache_target_list)
+        self.cc.all_cache_html_list = self.cc.flm.getAllUpdataHTMLList(self.throw_lists)
 
-        if len(self.cache_list) < 1:
+        if len(self.cc.cache_list) < 1 and len(self.cc.all_cache_html_list) < 1:
             print('')
             console.log(self.app_name, 'No cache target.')
             hearinger = Hearing()
             answer = hearinger.select('\n終了しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=True)
             return
 
-        self.cc.ms.showList('cache target list', self.cache_list)
+        self.cc.ms.showList('cache target list', self.cc.cache_list)
 
         code_files = self.cc.flm.walkTree()
         self.cc.count = len(code_files)
@@ -325,8 +372,11 @@ class CacheBacklog(BacklogApi):
         end = time.time()
         delta = end - start
 
-        self.cc.ms.showList('updata file list', files)
+        self.cc.ms.showList('List to update target\'s caches', files)
         self.cc.upDateChahe(files)
+
+        self.cc.ms.showList('HTML ist to update all caches', self.cc.all_cache_html_list)
+        self.cc.upDateChahe(self.cc.all_cache_html_list, mode="all")
 
         console.log(self.app_name, f'processing time: {format(round(delta,3))}')
         console.log(self.app_name, f'Number of files: {self.cc.count}')

@@ -52,7 +52,6 @@ def setBackLog():
 
 if len(args) > 1:
     check_backlog = re.search(r'https://sbweb.backlog.jp', args[1])
-    pprint.pprint(check_backlog)
     if check_backlog is None:
         cc = setSVN()
     else:
