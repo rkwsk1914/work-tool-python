@@ -20,9 +20,9 @@ def switchSet():
     hearinger = Hearing()
     answer = hearinger.select('Do you want to get the cache measure list from BackLog or SVN?', ['BackLog', 'SVN'], blank_ok=False)
     if answer == 'BackLog':
-        setBackLog()
+        return setBackLog()
     elif answer == 'SVN':
-        setSVN()
+        return setSVN()
 
 
 def setSVN():
@@ -35,8 +35,7 @@ def setSVN():
         'Incorrect format. Please enter an 8-digit number.  ex)20220309 20220309_1 20220309-1'
     )
 
-    cc = Cache(env, param)
-    return
+    return Cache(env, param)
 
 
 def setBackLog():
@@ -48,19 +47,18 @@ def setBackLog():
         r'\d{8}(\_\d|\-\d)?',
         'Incorrect format. Please enter an 8-digit number.  ex)20220309 20220309_1 20220309-1'
     )
-    cc = CacheBacklog(comment_url, param)
-    return
+    return CacheBacklog(comment_url, param)
 
 
 if len(args) > 1:
     check_backlog = re.search(r'https://sbweb.backlog.jp', args[1])
     pprint.pprint(check_backlog)
     if check_backlog is None:
-        setSVN()
+        cc = setSVN()
     else:
-        setBackLog()
+        cc = setBackLog()
 else:
-    switchSet()
+    cc = switchSet()
 
 
 def run_concurrent_origin(num, code_files):

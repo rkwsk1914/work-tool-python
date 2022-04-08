@@ -82,23 +82,10 @@ class CacheSVN():
             i += 1
         return file_list
 
-    def getCacheList(self, file_list):
-        result = []
-        for file_item in file_list:
-
-            isAsset = self.fc.checkAssetFile(file_item)
-            if isAsset == True:
-
-                isSrc = re.search(r'/src/', file_item)
-                if isSrc is None:
-                    result.append(file_item)
-        return result
-
     def start(self):
         cmd = self.setSVNCommand()
         console.log(self.app_name, f'do command "{cmd}"')
-        updata_list = self.doCheckSvn(cmd)
-        file_list = self.getCacheList(updata_list)
+        file_list = self.doCheckSvn(cmd)
         return file_list
 
 
@@ -110,6 +97,18 @@ class FileListMaker():
         self.file_list = []
         self.file_list2 = []
         return
+
+    def getCacheList(self, file_list):
+        result = []
+        for file_item in file_list:
+
+            isAsset = self.fc.checkAssetFile(file_item)
+            if isAsset == True:
+
+                isSrc = re.search(r'/src/', file_item)
+                if isSrc is None:
+                    result.append(file_item)
+        return result
 
     def walkTree(self):
         start = time.time()
@@ -254,7 +253,8 @@ class Cache():
         console.log(self.app_name, 'start')
         start = time.time()
 
-        self.cache_list = self.csvn.start()
+        updata_list = self.csvn.start()
+        self.cache_list = self.flm.getCacheList(updata_list)
 
         if len(self.cache_list) < 1:
             print('')
@@ -282,7 +282,7 @@ class Cache():
 
         hearinger = Hearing()
         print('\n必ずコミット前に必ず上記ファイル（↑ updata file list）の差分を確認してください。')
-        answer = hearinger.select('Please answer ==> ', ['y', 'n', 'yes', 'no'])
+        answer = hearinger.select('Please answer ==> ', ['y', 'yes'])
         console.log(self.app_name, f'Confirm recognition of differences before updating SVN. : {answer}')
         return
 
@@ -291,7 +291,7 @@ class CacheBacklog(BacklogApi):
     def __init__(self, comment_url, param):
         super().__init__(comment_url)
         self.app_name = __class__.__name__
-        self.cache_list = self.getCacheList()
+        self.cache_target_list = self.getCacheList()
         self.env = self.getUpDatedEnv()
         self.param = param
         self.fc = FileController()
@@ -304,6 +304,9 @@ class CacheBacklog(BacklogApi):
     async def start(self):
         console.log(self.app_name, 'start')
         start = time.time()
+
+        self.cache_target_list = self.csvn.start()
+        self.cache_list = self.flm.getCacheList(self.cache_target_list)
 
         if len(self.cache_list) < 1:
             print('')
@@ -331,6 +334,6 @@ class CacheBacklog(BacklogApi):
 
         hearinger = Hearing()
         print('\n必ずコミット前に必ず上記ファイル（↑ updata file list）の差分を確認してください。')
-        answer = hearinger.select('Please answer ==> ', ['y', 'n', 'yes', 'no'])
+        answer = hearinger.select('Please answer ==> ', ['y', 'yes'])
         console.log(self.app_name, f'Confirm recognition of differences before updating SVN. : {answer}')
         return
