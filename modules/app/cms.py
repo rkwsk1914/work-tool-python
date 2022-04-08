@@ -116,7 +116,7 @@ class showMessage():
 
     def showEnd(self, page_count):
         console.log(self.app_name, '')
-        console.log(self.app_name, f'({page_count}/{len(self.data)}) Page List')
+        console.log(self.app_name, f'({page_count - 1}/{len(self.data)}) Page List')
         console.log(self.app_name, '-------------------------------------------------------------------------------------')
 
         self.showList(self.data)
@@ -248,12 +248,15 @@ class CMSWIRO(CmsThrow):
         return
 
     def throwArtcle(self, page_dir):
+        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
+
+        if len(file_list) < 1:
+            return
+
         cms_data = self.cms_c.setCMSdata(page_dir)
         lang = self.cms_c.checkLang(page_dir)
         self.openExe.webOpen(cms_data[lang]['article'] + page_dir)
 
-        page_data = self.data[page_dir]
-        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
         for file_item in file_list:
             new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
             self.openExe.winMergeOpen(new_content)
@@ -311,15 +314,23 @@ class CMSSitecore(CmsThrow):
 
     def throwArtcle(self, page_dir):
         page_data = self.data[page_dir]
+        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
+
+        if len(file_list) < 1:
+            return
 
         url = self.createContenURL(page_dir)
         self.openExe.webOpen(url)
         self.openExe.openCockpit(page_dir, page_data, self.env)
         self.showDirItem(page_dir)
 
-        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
         for file_item in file_list:
             self.checkDone(file_item)
+
+        self.openExe.preview(page_dir)
+        self.hearinger.select(f'check preview "{page_dir}" ?', ('y', 'n'), True)
+        self.hearinger.select(f'check 承認依頼 "{page_dir}" ?', ('y', 'n'), True)
+        return
 
     def throwResources(self, page_dir):
         page_data = self.data[page_dir]
@@ -387,12 +398,7 @@ class CMSSitecore(CmsThrow):
             page_data = self.data[page_dir]
 
             self.throwResources(page_dir)
-            #self.throwDelete(page_dir)
             self.throwArtcle(page_dir)
-
-            self.openExe.preview(page_dir)
-            self.hearinger.select(f'check preview "{page_dir}" ?', ('y', 'n'), True)
-            self.hearinger.select(f'check 承認依頼 "{page_dir}" ?', ('y', 'n'), True)
 
             self.page_count += 1
 

@@ -118,11 +118,11 @@ class FileListMaker():
         result = []
         dir = DEVELOPMENT_ENVIRONMENT + '/' + self.env
         for file_item in file_list:
-            isWiro = re.search(r'wiro_localcode.inc|wiro_content.inc/', file_item)
+            isWiro = re.search(r'wiro_localcode.inc|wiro_content.inc', file_item)
             isHTML = re.search(r'\.html', file_item)
             if not isWiro is None:
-                wiro_localcode = re.sub(r'wiro_localcode.inc|wiro_content.inc/', 'wiro_localcode.inc', file_item)
-                wiro_content = re.sub(r'wiro_localcode.inc|wiro_content.inc/', 'wiro_content.inc', file_item)
+                wiro_localcode = re.sub(r'wiro_localcode.inc|wiro_content.inc', 'wiro_localcode.inc', file_item)
+                wiro_content = re.sub(r'wiro_localcode.inc|wiro_content.inc', 'wiro_content.inc', file_item)
                 result.append(self.fc.creanPath(dir + wiro_localcode))
                 result.append(self.fc.creanPath(dir + wiro_content))
             elif not isHTML is None:
@@ -337,6 +337,10 @@ class CacheBacklog(BacklogApi):
         self.cache_target_list = self.getCacheList()
         self.env = self.getUpDatedEnv()
         self.param = param
+
+        file_list = self.getUpDatedFile()
+        self.throw_lists = file_list['update']
+
         self.fc = FileController()
 
         print()
@@ -348,17 +352,17 @@ class CacheBacklog(BacklogApi):
         console.log(self.app_name, 'start')
         start = time.time()
 
-        self.cache_target_list = self.csvn.start()
-        self.cache_list = self.flm.getCacheList(self.cache_target_list)
+        self.cc.cache_list = self.cc.flm.getCacheList(self.cache_target_list)
+        self.cc.all_cache_html_list = self.cc.flm.getAllUpdataHTMLList(self.throw_lists)
 
-        if len(self.cache_list) < 1:
+        if len(self.cc.cache_list) < 1 and len(self.cc.all_cache_html_list) < 1:
             print('')
             console.log(self.app_name, 'No cache target.')
             hearinger = Hearing()
             answer = hearinger.select('\n終了しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=True)
             return
 
-        self.cc.ms.showList('cache target list', self.cache_list)
+        self.cc.ms.showList('cache target list', self.cc.cache_list)
 
         code_files = self.cc.flm.walkTree()
         self.cc.count = len(code_files)
@@ -368,8 +372,11 @@ class CacheBacklog(BacklogApi):
         end = time.time()
         delta = end - start
 
-        self.cc.ms.showList('updata file list', files)
+        self.cc.ms.showList('List to update target\'s caches', files)
         self.cc.upDateChahe(files)
+
+        self.cc.ms.showList('HTML ist to update all caches', self.cc.all_cache_html_list)
+        self.cc.upDateChahe(self.cc.all_cache_html_list, mode="all")
 
         console.log(self.app_name, f'processing time: {format(round(delta,3))}')
         console.log(self.app_name, f'Number of files: {self.cc.count}')
