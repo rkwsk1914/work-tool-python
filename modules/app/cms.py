@@ -540,13 +540,14 @@ class CMSController(ThrowList):
     def updataSvn(self):
         orign_dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env)
         orign_svn = SvnConroller(orign_dir)
-        orign_svn.update()
-        return
+        return orign_svn.update()
 
     def start(self):
         self.getPageData(self.getPageList())
 
-        self.updataSvn()
+        checkSvn =  self.updataSvn()
+        if checkSvn == False:
+            return
 
         check_cms_type = self.cms_c.checkCMSType()
         if check_cms_type == 'WIRO':
