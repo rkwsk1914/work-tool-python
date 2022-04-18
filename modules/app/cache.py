@@ -50,15 +50,19 @@ class CacheSVN():
         return cmd
 
     def doCheckSvn(self, cmd):
-        file_list = []
+        try:
+            cp = subprocess.run(cmd, capture_output=True)
+        except:
+            console.error(self.app_name, f'request failed. : {url_auth}')
+            return []
+        else:
+            stdout = cp.stdout
+            data = stdout.decode('utf-8')
+            data_list = re.split(r'\n', data)
+            file_list = self.doGetFileList(data_list)
+            return file_list
 
-        cp = subprocess.run(cmd, capture_output=True)
-        stdout = cp.stdout
-        data = stdout.decode('utf-8')
-
-        data_list = re.split(r'\n', data)
-        #pprint.pprint(data_list)
-
+    def doGetFileList(self, data_list):
         file_list = []
         i = 0
         while i < len(data_list):
@@ -290,6 +294,7 @@ class Cache():
 
     async def start(self):
         console.log(self.app_name, 'start')
+        hearinger = Hearing()
         start = time.time()
 
         updata_list = self.csvn.start()
@@ -298,8 +303,7 @@ class Cache():
 
         if len(self.cache_list) < 1 and len(self.all_cache_html_list) < 1:
             print('')
-            console.log(self.app_name, 'No cache target.')
-            hearinger = Hearing()
+            console.log('No cache target.')
             answer = hearinger.select('\n終了しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=True)
             return
 
@@ -314,10 +318,16 @@ class Cache():
         delta = end - start
 
         self.ms.showList('List to update target\'s caches', files)
+
+        check_continuance = hearinger.select('\HTMLのキャッシュ更新続けますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=False)
+        if check_continuance == 'n' or check_continuance == 'no':
+            console.log(self.app_name, 'exit.')
+            return
+
         self.upDateChahe(files)
 
-        self.ms.showList('HTML ist to update all caches', self.all_cache_html_list)
-        self.upDateChahe(self.all_cache_html_list, mode="all")
+        #self.ms.showList('HTML ist to update all caches', self.all_cache_html_list)
+        #self.upDateChahe(self.all_cache_html_list, mode="all")
 
         console.log(self.app_name, f'processing time: {format(round(delta,3))}')
         console.log(self.app_name, f'Number of files: {self.count}')
@@ -350,6 +360,7 @@ class CacheBacklog(BacklogApi):
 
     async def start(self):
         console.log(self.app_name, 'start')
+        hearinger = Hearing()
         start = time.time()
 
         self.cc.cache_list = self.cc.flm.getCacheList(self.cache_target_list)
@@ -358,7 +369,6 @@ class CacheBacklog(BacklogApi):
         if len(self.cc.cache_list) < 1 and len(self.cc.all_cache_html_list) < 1:
             print('')
             console.log(self.app_name, 'No cache target.')
-            hearinger = Hearing()
             answer = hearinger.select('\n終了しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=True)
             return
 
@@ -373,10 +383,16 @@ class CacheBacklog(BacklogApi):
         delta = end - start
 
         self.cc.ms.showList('List to update target\'s caches', files)
+
+
+        check_continuance = hearinger.select('\nHTMLのキャッシュ更新続けますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=False)
+        if check_continuance == 'n' or check_continuance == 'no':
+            console.log(self.app_name, '\nexit.')
+            return
         self.cc.upDateChahe(files)
 
-        self.cc.ms.showList('HTML ist to update all caches', self.cc.all_cache_html_list)
-        self.cc.upDateChahe(self.cc.all_cache_html_list, mode="all")
+        #self.cc.ms.showList('HTML ist to update all caches', self.cc.all_cache_html_list)
+        #self.cc.upDateChahe(self.cc.all_cache_html_list, mode="all")
 
         console.log(self.app_name, f'processing time: {format(round(delta,3))}')
         console.log(self.app_name, f'Number of files: {self.cc.count}')
