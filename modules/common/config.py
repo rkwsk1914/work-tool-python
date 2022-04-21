@@ -44,18 +44,30 @@ class Config(FileController):
         config_file = self.creanPath(path_data[0] + '/' + path_data[1])
         return config_file
 
+    def getNowEnvironmentData(self):
+        try:
+            config_data = self.config['BASE']['local-development-environment']
+        except:
+            self.config.add_section('BASE')
+            self.config.set('BASE', 'local-development-environment', '')
+            return ''
+        else:
+            return config_data
+
     def checkEnvironment(self):
-        config_data = self.config['BASE']['local-development-environment']
+        config_data = self.getNowEnvironmentData()
         args = ['', config_data]
 
         answer = self.check_param.check(
             args,
-            'Please enter directory path of your local development environment.  ex)C:/previewBox/m2-dev.local',
+            #'Please enter directory path of your local development environment.  ex)C:/previewBox/m2-dev.local',
+            '開発環境を格納しているディレクトリを入力してください。  ex)C:/previewBox/m2-dev.local',
             1,
             r'm2-dev.local'
         )
 
         env = self.reCheckEnvironment(answer)
+
         self.config['BASE']['local-development-environment'] = env
 
         with open(self.config_file, 'w') as file:

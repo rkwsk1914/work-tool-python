@@ -8,6 +8,16 @@ import shutil
 import os
 import zipfile
 
+import time
+
+from multiprocessing import Pool
+
+
+def unwrap_self_function(arg, **kwarg):
+    # メソッドfをクラスメソッドとして呼び出す関数
+    print('test', arg)
+    #return FileController.getList(*arg, **kwarg)
+    return FileController.getList(arg, **kwarg)
 
 class FileController:
     # property
@@ -189,3 +199,27 @@ class FileController:
                 return True
         return False
 
+    def getList(self, args):
+        print(f'start : {args[0]}')
+        time.sleep(2)
+        pprint.pprint(args[1])
+        print(f'finish: {args[0]}')
+        check = args[0] % 2
+        if check == 0:
+            return args[0]
+        return
+
+    def getFileList(self, top_dir):
+        full_path_list = []
+
+        pool = Pool(processes=4)
+        list_a = [1, 2, 3, 4, 5,6,7,8,9,10]
+        list_b = [11, 22, 33, 44, 55,66,77,88,99,110]
+        args = [[i, list_b] for i in list_a]
+        #pprint.pprint(args)
+        result = pool.map(self.getList, args)
+        pprint.pprint(list(result))
+
+        #for answer in map(self.getList, [1, 2, 3, 4, 5,6,7,8,9,10]):
+        #    a = answer
+        return
