@@ -18,7 +18,7 @@ check_param = CheckParam()
 
 def switchSet():
     hearinger = Hearing()
-    answer = hearinger.select('Do you want to get the cache measure list from BackLog or SVN?', ['BackLog', 'SVN'], blank_ok=False)
+    answer = hearinger.selectOptionNumber('\nBackLogの投入ログとコミット前のローカルSVNどちらからキャッシュ情報を取得しますか？\nDo you want to get the cache measure list from BackLog or SVN?', ['BackLog', 'SVN'], blank_ok=False)
     if answer == 'BackLog':
         return setBackLog()
     elif answer == 'SVN':
@@ -26,10 +26,10 @@ def switchSet():
 
 
 def setSVN():
-    env = check_param.checkEnv(args, 'Please enter merge environment. ', 1)
+    env = check_param.checkEnv(args, '\nコミット前のローカルSVN情報を取得する開発環境を指定してください。Please enter SVN environment. \n', 1)
     param = check_param.checkFormat(
         args,
-        'Please enter new cache param.  ex)20220309 20220309_1 20220309-1',
+        '\n更新するキャッシュパラメータを入力してください。\nPlease enter new cache param.  ex)20220309 20220309_1 20220309-1',
         2,
         r'\d{8}(\_\d|\-\d)?',
         'Incorrect format. Please enter an 8-digit number.  ex)20220309 20220309_1 20220309-1'
@@ -39,10 +39,10 @@ def setSVN():
 
 
 def setBackLog():
-    comment_url = check_param.checkBackLogUrl(args, 'Please enter BackLog Page URL.', 1)
+    comment_url = check_param.checkBackLogUrl(args, '\nBackLogの投入ログのURLを入力してください。Please enter BackLog Page URL.', 1)
     param = check_param.checkFormat(
         args,
-        'Please enter new cache param.  ex)20220309 20220309_1 20220309-1',
+        '\n更新するキャッシュパラメータを入力してください。\nPlease enter new cache param.  ex)20220309 20220309_1 20220309-1',
         2,
         r'\d{8}(\_\d|\-\d)?',
         'Incorrect format. Please enter an 8-digit number.  ex)20220309 20220309_1 20220309-1'

@@ -46,6 +46,7 @@ class CountTimer():
         # 計測開始
         console.log(self.app_name, f'{msg} {processe_name} start.')
         self.start = time.time()
+        print('しばらくお待ち下さい。Please wait a moment.')
         return
 
     def finish(self, processe_name, msg=''):
@@ -78,10 +79,18 @@ class CacheSVN():
             return []
         else:
             stdout = cp.stdout
-            data = stdout.decode('utf-8')
-            data_list = re.split(r'\n', data)
-            file_list = self.__doGetFileList(data_list)
-            return file_list
+            pprint.pprint(stdout)
+
+            try:
+                data = stdout.decode('shift-jis')
+            except:
+                console.error(self.app_name, f'decode failed. : {url_auth}')
+                return []
+            else:
+                pprint.pprint(data)
+                data_list = re.split(r'\n', data)
+                file_list = self.__doGetFileList(data_list)
+                return file_list
 
     def __doGetFileList(self, data_list):
         file_list = []
@@ -233,12 +242,18 @@ class FileListMaker():
             return ['error']
         else:
             stdout = cp.stdout
-            data = stdout.decode('shift-jis')
-            data_list = re.split(r'\n', data)
-            fix_list = [self.__getFixList(i) for i in data_list]
-            file_list = list(filter(None, fix_list))
-            self.ct.finish(processe_name=processe_name, msg='全ファイルリスト取得終了。')
-            return file_list
+
+            try:
+                data = stdout.decode('shift-jis')
+            except:
+                console.error(self.app_name, f'decode failed. : {cmd}')
+                return ['error']
+            else:
+                data_list = re.split(r'\n', data)
+                fix_list = [self.__getFixList(i) for i in data_list]
+                file_list = list(filter(None, fix_list))
+                self.ct.finish(processe_name=processe_name, msg='全ファイルリスト取得終了。')
+                return file_list
 
 
 class CacheDataCreater():
@@ -338,7 +353,7 @@ class CacheDataCreater():
         #code_files = self.flm.walkTreeToGetCodeFileList()
 
         code_files = self.flm.doPowershell()
-        if code_files[0] == 'error':
+        if code_files[0] == 'error' or len(code_files) < 1:
             code_files = self.flm.walkTreeToGetCodeFileList()
 
         self.__getFileData(cache_list, code_files)
@@ -457,7 +472,7 @@ class Cache():
 
         if len(cache_list) < 1 and len(all_cache_html_list) < 1:
             print('')
-            console.log('No cache target.')
+            console.log(self.app_name, 'No cache target.')
             answer = self.hearinger.select('\n終了しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=True)
             return
 
@@ -482,7 +497,7 @@ class Cache():
         # アセットリソースファイル一覧 取得
         svn_data = self.csvn.getSVNCacheData()
 
-        self.doCache(svn_data)
+        # self.doCache(svn_data)
         return
 
 
@@ -494,6 +509,10 @@ class CacheBacklog(BacklogApi):
         self.cache_target_list = self.getCacheList()
         env = self.getUpDatedEnv()
 
+        if env == None:
+            console.error(self.app_name, f'(Init) miss getting Enviroment from Backlog. {comment_url}')
+            self.stop = True
+            return
 
         print()
         console.log(self.app_name, f'(Init) from Backlog.')
@@ -501,10 +520,13 @@ class CacheBacklog(BacklogApi):
         return
 
     async def start(self):
+        if self.stop == True:
+            return
+
         data = {
             'cache_list': self.cache_target_list,
             'all_cache_html_list': []
         }
-        self.cc.doCache(svn_data)
+        self.cc.doCache(data)
 
         return

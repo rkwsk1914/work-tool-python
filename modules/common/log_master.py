@@ -75,4 +75,5 @@ class LogMater(FileController):
             return
         self.logger = logging.getLogger(module_name)
         self.logger.error(text)
+        answer = input('')
         return

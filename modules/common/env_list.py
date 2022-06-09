@@ -1,5 +1,6 @@
 import os
 import pprint
+import re
 
 from modules.config.db import ENVLIST
 from modules.config import setup
@@ -17,8 +18,20 @@ class EnvList:
         return dir_list
 
     def checkExistEnvironment(self, check_env):
-        check = False
         for env_item in self.envlist:
             if check_env == env_item:
-                check = True
-        return check
+                return True
+
+        for env_item in self.envlist:
+            isEnv = re.search(env_item, check_env)
+            if isEnv is not None:
+                return True
+
+        return False
+
+    def getExistEnvironmentFromString(self, check_env):
+        for env_item in self.envlist:
+            isEnv = re.search(env_item, check_env)
+            if isEnv is not None:
+                return env_item
+        return None
