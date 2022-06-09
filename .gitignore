@@ -6,8 +6,6 @@ __pycache__
 sample.py
 build
 log
+cms-part
+dist
 */**/log
-cms-part/now-sitecore-content-pc.inc
-cms-part/now-sitecore-content-sp.inc
-cms-part/now-sitecore-localcode-pc.inc
-cms-part/now-sitecore-localcode-sp.inc
