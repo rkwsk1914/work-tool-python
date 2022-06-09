@@ -1,1 +1,0 @@
-wiro_pcタグ、wiro_spタグ、wiro_includeタグが存在しなかったのでPC版の出力と同じです。

@@ -83,12 +83,12 @@ class BacklogApi(ApiControlller):
                 if check_blank is None:
 
                     envlist = EnvList()
-                    check = envlist.checkExistEnvironment(env_text)
-                    if check == False:
+                    result = envlist.getExistEnvironmentFromString(env_text)
+                    if result == None:
                         print('backlog\'s enviroment is undefined. : ' + env_text)
                         return None
 
-                    return env_text
+                    return result
         return None
 
     def getCacheList(self):

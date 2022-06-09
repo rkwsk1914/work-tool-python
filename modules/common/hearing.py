@@ -39,7 +39,7 @@ class Hearing:
         return answer
 
     def creatSelectionMsg(self, msg, selections):
-        repeatMsg = msg + '[ '
+        repeatMsg = msg + ' [ '
 
         count = 1
         for select in selections:
@@ -47,6 +47,20 @@ class Hearing:
                 repeatMsg = repeatMsg + select
             else:
                 repeatMsg = repeatMsg + ' / ' + select
+            count += 1
+
+        repeatMsg = repeatMsg + ' ] : '
+        return repeatMsg
+
+    def creatOptionMsg(self, msg, selections):
+        repeatMsg = msg + ' [ '
+
+        count = 1
+        for select in selections:
+            if count == 1:
+                repeatMsg = repeatMsg + f'({count}) ' + select
+            else:
+                repeatMsg = repeatMsg + ' / ' + f'({count}) ' + select
             count += 1
 
         repeatMsg = repeatMsg + ' ] : '
@@ -71,3 +85,25 @@ class Hearing:
             answer = self.select(msg, selections)
 
         return answer
+
+    def selectOptionNumber(self, msg, selections, blank_ok=False):
+        hearing_msg = self.creatOptionMsg(msg, selections)
+        answer = int(input(hearing_msg))
+
+        if answer == '' and blank_ok == True:
+            return answer
+
+        check = False
+
+        count = 1
+        for select in selections:
+            if count == answer:
+                check = True
+            count += 1
+
+        if check == False:
+            print('')
+            print('Unknown choice. Please select Number again.')
+            answer = self.selectOptionNumber(msg, selections)
+
+        return selections[answer - 1]
