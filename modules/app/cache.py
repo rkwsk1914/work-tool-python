@@ -87,7 +87,7 @@ class CacheSVN():
                 console.error(self.app_name, f'decode failed. : {url_auth}')
                 return []
             else:
-                pprint.pprint(data)
+                #pprint.pprint(data)
                 data_list = re.split(r'\n', data)
                 file_list = self.__doGetFileList(data_list)
                 return file_list
@@ -497,7 +497,7 @@ class Cache():
         # アセットリソースファイル一覧 取得
         svn_data = self.csvn.getSVNCacheData()
 
-        # self.doCache(svn_data)
+        self.doCache(svn_data)
         return
 
 
