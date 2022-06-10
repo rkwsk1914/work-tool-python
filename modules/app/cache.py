@@ -79,7 +79,7 @@ class CacheSVN():
             return []
         else:
             stdout = cp.stdout
-            pprint.pprint(stdout)
+            #pprint.pprint(stdout)
 
             try:
                 data = stdout.decode('shift-jis')
