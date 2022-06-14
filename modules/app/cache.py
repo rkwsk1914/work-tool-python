@@ -505,6 +505,7 @@ class CacheBacklog(BacklogApi):
     def __init__(self, comment_url, param):
         super().__init__(comment_url)
         self.app_name = __class__.__name__
+        self.stop = False
 
         self.cache_target_list = self.getCacheList()
         env = self.getUpDatedEnv()
