@@ -88,7 +88,8 @@ class Hearing:
 
     def selectOptionNumber(self, msg, selections, blank_ok=False):
         hearing_msg = self.creatOptionMsg(msg, selections)
-        answer = int(input(hearing_msg))
+        answer = input(hearing_msg)
+        result = ''
 
         if answer == '' and blank_ok == True:
             return answer
@@ -97,13 +98,24 @@ class Hearing:
 
         count = 1
         for select in selections:
-            if count == answer:
+            if select == answer:
                 check = True
+                result = select
+            else:
+                try:
+                    num_answer = int(answer)
+                except:
+                    check = False
+                else:
+                    if count == num_answer:
+                        check = True
+                        result =  selections[num_answer - 1]
             count += 1
 
         if check == False:
             print('')
-            print('Unknown choice. Please select Number again.')
+            print('選択肢にありません。再度、選択項目の番号かワードを入力してください。\nUnknown choice. Please select Number or Keywords again.')
             answer = self.selectOptionNumber(msg, selections)
+            return answer
 
-        return selections[answer - 1]
+        return result
