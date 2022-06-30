@@ -143,7 +143,8 @@ class ResourceChecK(BacklogApi):
         return
 
     def showMissList(self):
-        if len(self.miss_list) < 1:
+        miss_list_fix = set(self.miss_list)
+        if len(miss_list_fix) < 1:
             console.log(self.app_name, '')
             console.log(self.app_name, '')
             console.log(self.app_name, 'All Resources are Same. OK. ')
@@ -153,13 +154,14 @@ class ResourceChecK(BacklogApi):
             console.log(self.app_name, '')
             console.log(self.app_name, 'Difference exist. ')
 
-            for item in self.miss_list:
+            for item in miss_list_fix:
                 console.log(self.app_name, item)
                 console.log(self.app_name, '')
         return
 
     def showFailList(self):
-        if len(self.fail_list) < 1:
+        fail_list_fix = set(self.fail_list)
+        if len(fail_list_fix) < 1:
             console.log(self.app_name, '')
             console.log(self.app_name, '')
             console.log(self.app_name, 'Request URL \'s are All Success. ')
@@ -171,7 +173,7 @@ class ResourceChecK(BacklogApi):
             console.log(self.app_name, '')
             console.log(self.app_name, 'Request URL \'s has Fail. ')
 
-            for item in self.fail_list:
+            for item in fail_list_fix:
                 console.log(self.app_name, item)
                 console.log(self.app_name, '')
         return
@@ -181,6 +183,6 @@ class ResourceChecK(BacklogApi):
             self.check(item, 'pc')
             self.check(item, 'sp')
 
-        self.showMissList()
         self.showFailList()
+        self.showMissList()
         return

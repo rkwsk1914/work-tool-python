@@ -68,7 +68,7 @@ class CheckParam:
                 if default == type_item:
                     return default
 
-        cms_type = hearinger.select(msg, CMSLSIT)
+        cms_type = hearinger.selectOptionNumber(msg, CMSLSIT)
         return cms_type
 
     def checkSelection(self, args, default, msg, selection, num):
@@ -84,7 +84,7 @@ class CheckParam:
                 if default == item:
                     return default
 
-        cms_type = hearinger.select(msg, selection)
+        cms_type = hearinger.selectOptionNumber(msg, selection)
         return cms_type
 
     def check(self, args, msg, num, regexp):
