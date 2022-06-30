@@ -71,6 +71,22 @@ class CheckParam:
         cms_type = hearinger.select(msg, CMSLSIT)
         return cms_type
 
+    def checkSelection(self, args, default, msg, selection, num):
+        cms_type = ''
+        hearinger = Hearing()
+
+        if len(args) > num:
+            for item in selection:
+                if args[num] == item:
+                    return args[num]
+        else:
+            for item in selection:
+                if default == item:
+                    return default
+
+        cms_type = hearinger.select(msg, selection)
+        return cms_type
+
     def check(self, args, msg, num, regexp):
         answer = ''
         check = False
