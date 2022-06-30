@@ -13,12 +13,13 @@ console = LogMater('Merge')
 
 class Merge(BacklogApi):
 
-    def __init__(self, comment_url, merge_env):
+    def __init__(self, comment_url, merge_env, fouce_copy):
         super().__init__(comment_url)
         self.app_name = __class__.__name__
         self.file_list = self.getUpDatedFile()
         self.origin_env = self.getUpDatedEnv()
         self.merge_env = merge_env
+        self.fouce_copy = self.checkForceCopy(fouce_copy)
         self.fc = FileController()
 
     def setItemPath(self, env, item):
@@ -49,6 +50,10 @@ class Merge(BacklogApi):
 
         check_code = self.fc.checkCodeFile(merge_item)
         if check_code == False:
+            self.doCopy(item)
+            return
+
+        if self.fouce_copy == True:
             self.doCopy(item)
             return
 
@@ -102,6 +107,13 @@ class Merge(BacklogApi):
         if orign_check == False or merge_check == False:
             return False
         return True
+
+    def checkForceCopy(self, fouce_copy):
+        if fouce_copy == 'y' or fouce_copy == 'yes':
+            return True
+        else:
+            return False
+
 
     def start(self):
         if self.origin_env is None:

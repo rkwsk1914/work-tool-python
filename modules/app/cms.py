@@ -375,15 +375,24 @@ class CMSSitecore(CmsThrow):
     def createContenURL(self, dir_item):
         cms_data = self.cms_c.setCMSdata(dir_item)
         lang = self.cms_c.checkLang(dir_item)
-        url = cms_data['search_key']['content']['key'] + dir_item + cms_data['search_key']['media'][lang]
-        return url
-        return url
+        if lang == 'ja':
+            url = cms_data['search_key']['content']['key'] + dir_item + cms_data['search_key']['media'][lang]
+            return url
+        if lang == 'en':
+            en_dir_item = re.sub(r'en/', '', dir_item)
+            url = cms_data['search_key']['content']['key'] + en_dir_item + cms_data['search_key']['media'][lang]
+            return url
 
     def createMediaURL(self, dir_item):
         cms_data = self.cms_c.setCMSdata(dir_item)
         lang = self.cms_c.checkLang(dir_item)
-        url = cms_data['search_key']['media']['key'] + dir_item + cms_data['search_key']['media'][lang]
-        return url
+        if lang == 'ja':
+            url = cms_data['search_key']['media']['key'] + dir_item + cms_data['search_key']['media'][lang]
+            return url
+        if lang == 'en':
+            #en_dir_item = re.sub(r'en/', '', dir_item)
+            url = cms_data['search_key']['media']['key'] + dir_item + cms_data['search_key']['media'][lang]
+            return url
 
     def start(self):
         self.resetSandBox()

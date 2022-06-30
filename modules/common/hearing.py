@@ -87,7 +87,8 @@ class Hearing:
         return answer
 
     def selectOptionNumber(self, msg, selections, blank_ok=False):
-        hearing_msg = self.creatOptionMsg(msg, selections)
+        selectionsKeys = list(selections.keys())
+        hearing_msg = self.creatOptionMsg(msg, selectionsKeys)
         answer = input(hearing_msg)
         result = ''
 
@@ -97,7 +98,7 @@ class Hearing:
         check = False
 
         count = 1
-        for select in selections:
+        for select in selectionsKeys:
             if select == answer:
                 check = True
                 result = select
@@ -109,7 +110,7 @@ class Hearing:
                 else:
                     if count == num_answer:
                         check = True
-                        result =  selections[num_answer - 1]
+                        result =  selectionsKeys[num_answer - 1]
             count += 1
 
         if check == False:
