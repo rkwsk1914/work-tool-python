@@ -195,7 +195,8 @@ class FileController:
             or extends == 'jfif' \
             or extends == 'jpe' \
             or extends == 'gif' \
-            or extends == 'svg':
+            or extends == 'svg' \
+            or extends == 'webp':
                 return True
         return False
 
