@@ -32,7 +32,7 @@ class OpenExe:
     localcode_sp = '/cms-part/now-sitecore-localcode-sp.inc'
     conten_pc = '/cms-part/now-sitecore-content-pc.inc'
     conten_sp = '/cms-part/now-sitecore-content-sp.inc'
-    test = True
+    test = False
 
     cookipit = ''
 
@@ -517,15 +517,27 @@ class ThrowList(BacklogApi):
     def getThrowFileList(self, file_list):
         all_file_list = list(set(file_list['update'] + file_list['new']))
 
-        element = 0
         for file_item in all_file_list:
             check_src = re.search(r'/src', file_item)
 
             if not check_src is None:
-                all_file_list.pop(element)
+                print(file_item)
+                print(all_file_list[all_file_list.index(file_item)])
+                print()
+                all_file_list.pop(all_file_list.index(file_item))
 
-            element = element + 1
-        return all_file_list
+        for file_item in all_file_list:
+            check_src = re.search(r'/src', file_item)
+
+            if not check_src is None:
+                print(file_item)
+                print(all_file_list[all_file_list.index(file_item)])
+                print()
+                all_file_list.pop(all_file_list.index(file_item))
+
+        result = sorted(all_file_list)
+        pprint.pprint(result)
+        return result
 
     def setItemPath(self, item):
         return self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + item)
@@ -650,9 +662,9 @@ class CMSController(ThrowList):
     def start(self):
         self.getPageData(self.getPageList())
 
-        checkSvn =  self.updataSvn()
-        if checkSvn == False:
-            return
+        #checkSvn =  self.updataSvn()
+        #if checkSvn == False:
+        #    return
 
         check_cms_type = self.cms_c.checkCMSType()
         if check_cms_type == 'WIRO':
