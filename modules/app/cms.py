@@ -13,6 +13,7 @@ from modules.common.backlog_api import BacklogApi
 from modules.common.scraping import Scraping
 from modules.common.svn import SvnConroller
 from modules.common.cms_checker import CMSchecker
+from modules.common.spinner import Spinner
 
 from modules.app.resourcs_check import ResourceChecK
 
@@ -31,6 +32,7 @@ class OpenExe:
     localcode_sp = '/cms-part/now-sitecore-localcode-sp.inc'
     conten_pc = '/cms-part/now-sitecore-content-pc.inc'
     conten_sp = '/cms-part/now-sitecore-content-sp.inc'
+    test = True
 
     cookipit = ''
 
@@ -41,15 +43,19 @@ class OpenExe:
 
     def folderOpen(self, full_path):
         try:
-            p = subprocess.Popen(["explorer",  full_path], shell=True)
-            #print('folder open')
+            if self.test == False:
+                p = subprocess.Popen(["explorer",  full_path], shell=True)
+            else:
+                print('folder open')
         except:
             console.error(self.app_name, f'Folder open failed. : {full_path}')
 
     def webOpen(self, url):
         try:
-            webbrowser.open(url)
-            #print(f'open web : {url}')
+            if self.test == False:
+                webbrowser.open(url)
+            else:
+                print(f'open web : {url}')
         except:
             console.error(self.app_name, f'Web site open failed. : {url}')
 
@@ -58,8 +64,10 @@ class OpenExe:
         now_cms_content = self.fc.creanPath(current_dir + self.cms_countent)
         cmd = 'start WinMergeU ' + new_content + ' ' + now_cms_content
         try:
-            subprocess.check_call(cmd, shell=True)
-            #print(cmd)
+            if self.test == False:
+                subprocess.check_call(cmd, shell=True)
+            else:
+                print(cmd)
         except:
             console.error(self.app_name, f'WinMerge failed. : {cmd}')
             return False
@@ -306,11 +314,71 @@ class CMSWIRO(CmsThrow):
         return
 
 
+class ExceptionContets():
+    def __init__(self):
+        return
+
+    # mode = page | content
+    def check(slef, dir_item, mode):
+        result = dir_item
+
+        check_pc_include = re.search(r'/mobile/design/parts/common/pc/include/support/', dir_item)
+        if not check_pc_include is None:
+            if mode == 'page':
+                result = '/mobile/_Metadata/common/pc/include/support/'
+            else:
+                result = re.sub(r'/mobile/design/parts/common/pc/include/support/', '/mobile/_Metadata/common/pc/include/support/', dir_item)
+
+        check_sp_include = re.search(r'/mobile/design/parts/common/sp/include/support/', dir_item)
+        if not check_sp_include is None:
+            if mode == 'page':
+                result = '/mobile/_Metadata/common/sp/include/support/'
+            else:
+                result = re.sub(r'/mobile/design/parts/common/sp/include/support/', '/mobile/_Metadata/common/sp/include/support/', dir_item)
+
+        check_pc_cancellation_include = re.search(r'/mobile/design/parts/common/pc/include/support/cancellation-contact/', dir_item)
+        if not check_pc_cancellation_include is None:
+            if mode == 'page':
+                result = '/mobile/_Metadata/common/pc/include/support/cancellation-contact/'
+            else:
+                result = re.sub(r'/mobile/design/parts/common/pc/include/support/cancellation-contact/', '/mobile/_Metadata/common/pc/include/support/cancellation-contact/', dir_item)
+
+        check_sp_cancellation_include = re.search(r'/mobile/design/parts/common/sp/include/support/cancellation-contact/', dir_item)
+        if not check_sp_cancellation_include is None:
+            if mode == 'page':
+                result = '/mobile/_Metadata/common/sp/include/support/cancellation-contact/'
+            else:
+                result = re.sub(r'/mobile/design/parts/common/sp/include/support/cancellation-contact/', '/mobile/_Metadata/common/sp/include/support/cancellation-contact/', dir_item)
+
+        check_pc_mobile_top = re.search(r'/mobile/design/parts/top/pc/', dir_item)
+        if not check_pc_mobile_top is None:
+            result = '/mobile/_Local/HTML_PC_10'
+
+        check_sp_mobile_top = re.search(r'/mobile/design/parts/top/sp/', dir_item)
+        if not check_sp_mobile_top is None:
+            result = '/mobile/_Local/HTML_SP_10'
+
+        return result
+
+
 class CMSSitecore(CmsThrow):
     def __init__(self, data, env, cms_type):
         super().__init__(data, env, cms_type)
         self.app_name = __class__.__name__
+        self.ex = ExceptionContets()
         return
+
+    def checkExeption(self, page_dir, file_item):
+        isExeption = False
+
+        sitecore_page = self.ex.check(file_item, 'page')
+
+        if sitecore_page == page_dir:
+            isExeption = False
+        else:
+            isExeption = True
+
+        return isExeption
 
     def throwArtcle(self, page_dir):
         page_data = self.data[page_dir]
@@ -320,9 +388,18 @@ class CMSSitecore(CmsThrow):
             return
 
         url = self.createContenURL(page_dir)
-        self.openExe.webOpen(url)
-        self.openExe.openCockpit(page_dir, page_data, self.env)
-        self.showDirItem(page_dir)
+        isExeption = self.checkExeption(page_dir, file_list[0])
+
+        if (isExeption == True):
+            self.openExe.webOpen(url)
+            self.showDirItem(page_dir)
+            for file_item in file_list:
+                new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
+                self.openExe.winMergeOpen(new_content)
+        else:
+            self.openExe.webOpen(url)
+            self.openExe.openCockpit(page_dir, page_data, self.env)
+            self.showDirItem(page_dir)
 
         for file_item in file_list:
             self.checkDone(file_item)
@@ -375,12 +452,13 @@ class CMSSitecore(CmsThrow):
     def createContenURL(self, dir_item):
         cms_data = self.cms_c.setCMSdata(dir_item)
         lang = self.cms_c.checkLang(dir_item)
+        dir = self.ex.check(dir_item, 'content')
         if lang == 'ja':
-            url = cms_data['search_key']['content']['key'] + dir_item + cms_data['search_key']['media'][lang]
+            url = cms_data['search_key']['content']['key'] + dir + cms_data['search_key']['media'][lang]
             return url
         if lang == 'en':
-            en_dir_item = re.sub(r'en/', '', dir_item)
-            url = cms_data['search_key']['content']['key'] + en_dir_item + cms_data['search_key']['media'][lang]
+            en_dir = re.sub(r'en/', '', dir)
+            url = cms_data['search_key']['content']['key'] + en_dir + cms_data['search_key']['media'][lang]
             return url
 
     def createMediaURL(self, dir_item):
@@ -401,6 +479,9 @@ class CMSSitecore(CmsThrow):
         self.showStart(self.page_count)
         self.openExe.webOpen(CMSLSIT[self.cms_type]['top'])
         check = self.hearinger.select(f'Did you login Sitecore ?', ('y', 'n'), True)
+
+        if check == 'n':
+            return
 
         for page_dir in self.data:
             self.showData(page_dir, self.page_count)
@@ -427,10 +508,24 @@ class ThrowList(BacklogApi):
         self.app_name = __class__.__name__
 
         file_list = self.getUpDatedFile()
-        self.throw_lists = list(set(file_list['update'] + file_list['new']))
+        self.throw_lists = self.getThrowFileList(file_list)
         self.del_list = file_list['delete']
         self.env = self.getUpDatedEnv()
         self.fc = FileController()
+        self.ex = ExceptionContets()
+
+    def getThrowFileList(self, file_list):
+        all_file_list = list(set(file_list['update'] + file_list['new']))
+
+        element = 0
+        for file_item in all_file_list:
+            check_src = re.search(r'/src', file_item)
+
+            if not check_src is None:
+                all_file_list.pop(element)
+
+            element = element + 1
+        return all_file_list
 
     def setItemPath(self, item):
         return self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + item)
@@ -444,7 +539,7 @@ class ThrowList(BacklogApi):
     def getPageList(self):
         all_page_list = []
         for item in self.throw_lists:
-            page_path = self.getPagePath(item)
+            page_path = self.ex.check(self.getPagePath(item), 'page')
             all_page_list.append(page_path)
 
         for item_del in self.del_list:
@@ -452,15 +547,16 @@ class ThrowList(BacklogApi):
             all_page_list.append(page_path_del)
 
         page_list = list(set(all_page_list))
+        new_page_list = sorted(page_list)
         #pprint.pprint(page_list)
-        return page_list
+        return new_page_list
 
     def getPageData(self, page_list):
         for page in page_list:
             self.data[page] = self.createPageData()
 
             for item in self.throw_lists:
-                page_path = self.getPagePath(item)
+                page_path = self.ex.check(self.getPagePath(item), 'page')
                 if page_path == page:
                     self.classificationItem(page_path, item)
 
@@ -549,7 +645,7 @@ class CMSController(ThrowList):
     def updataSvn(self):
         orign_dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env)
         orign_svn = SvnConroller(orign_dir)
-        return orign_svn.update()
+        return Spinner(orign_svn.update)()
 
     def start(self):
         self.getPageData(self.getPageList())

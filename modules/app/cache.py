@@ -7,11 +7,14 @@ import asyncio
 import glob
 import numpy as np
 from multiprocessing import Pool
+from progressbar import progressbar
+from tqdm import tqdm
 
 from modules.common.hearing import Hearing
 from modules.common.log_master import LogMater
 from modules.common.file_controller import FileController
 from modules.common.backlog_api import BacklogApi
+from modules.common.spinner import Spinner
 
 #from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 from modules.common.config import DEVELOPMENT_ENVIRONMENT
@@ -46,7 +49,7 @@ class CountTimer():
         # 計測開始
         console.log(self.app_name, f'{msg} {processe_name} start.')
         self.start = time.time()
-        print('しばらくお待ち下さい。Please wait a moment.')
+        #print('しばらくお待ち下さい。Please wait a moment.')
         return
 
     def finish(self, processe_name, msg=''):
@@ -79,7 +82,7 @@ class CacheSVN():
             return []
         else:
             stdout = cp.stdout
-            pprint.pprint(stdout)
+            #pprint.pprint(stdout)
 
             try:
                 data = stdout.decode('shift-jis')
@@ -233,10 +236,12 @@ class FileListMaker():
         dir = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env)
         power_commond = "Get-ChildItem " + dir + " -Recurse -Name -Include *.inc, *.php, *.txt, *.html, *.json, *.jsonp, *.js, *.jsx, *.ts, *.tsx, *.vue, *.csv, *.css, *.sass, *.scss"
         cmd = 'powershell -Command' + ' ' + power_commond
-        processe_name = f'get directory tree data: \ncommand[ {cmd} ]'
+        processe_name = f'get directory tree data'
+        console.log(self.app_name, f'command : {cmd}')
         self.ct.start(processe_name=processe_name, msg='全ファイルリスト取得開始。')
         try:
-            cp = subprocess.run(cmd, capture_output=True)
+            #cp = subprocess.run(cmd, capture_output=True)
+            cp = Spinner(subprocess.run)(cmd, capture_output=True)
         except:
             console.error(self.app_name, f'Windows PowerShellコマンド失敗。command failed. : {cmd}')
             return ['error']
@@ -325,9 +330,11 @@ class CacheDataCreater():
         exist_asset_flag = True
 
         #グレップ
-        updata_code_files = self.__grep(cache_list, code_files)
+        updata_code_files = Spinner(self.__grep)(cache_list, code_files)
 
         for code_file in updata_code_files:
+            time.sleep(0.01)
+
             # バックスラッシュ書式の相対パスに変更
             dir = DEVELOPMENT_ENVIRONMENT + '\\' + self.env
             dir_p = re.sub(r'\\', '/', dir)
@@ -418,6 +425,33 @@ class CodeWriter():
         self.fc.writing(new_data, upData_file)
         return
 
+    def __updateAllFile(self, mode, target_file_list, upData_file_list):
+        console.log(self.app_name,f'キャッシュ更新開始。Start updata caches. [mode={mode}]')
+        for upData_file in upData_file_list:
+            if mode == 'all':
+                self.__rewriteAllAssetCode(upData_file)
+            else:
+                self.__reWrite(upData_file, target_file_list)
+            console.log(self.app_name,f'キャッシュ更新。Updata caches. file: {upData_file}')
+        console.log(self.app_name,f'キャッシュ更新完了。Finish updata caches. [mode={mode}]')
+        return
+
+    def __updateOneByOne(self, mode, target_file_list, upData_file_list):
+        console.log(self.app_name,f'キャッシュ更新開始。Start updata caches. [mode={mode}]')
+        for upData_file in upData_file_list:
+            check_all = self.hearinger.select(f'{upData_file} 更新しますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=False)
+            if  check_all == 'n' or check_all == 'no':
+                console.log(self.app_name,f'更新なし。Don\'t Updata caches. file: {upData_file}')
+                continue
+            else:
+                if mode == 'all':
+                    self.__rewriteAllAssetCode(upData_file)
+                else:
+                    self.__reWrite(upData_file, target_file_list)
+                console.log(self.app_name,f'キャッシュ更新。Updata caches. file: {upData_file}')
+        console.log(self.app_name,f'キャッシュ更新完了。Finish updata caches. [mode={mode}]')
+        return
+
     def upDateChahe(self, cache_data, mode="normal"):
         check_continuance = self.hearinger.select('HTMLのキャッシュ更新続けますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=False)
         if check_continuance == 'n' or check_continuance == 'no':
@@ -427,13 +461,14 @@ class CodeWriter():
         target_file_list = cache_data['target_file_list']
         upData_file_list = cache_data['upData_file_list']
 
-        console.log(self.app_name,f'キャッシュ更新開始。Start updata caches. [mode={mode}]')
-        for upData_file in upData_file_list:
-            if mode == 'all':
-                self.__rewriteAllAssetCode(upData_file)
-            else:
-                self.__reWrite(upData_file, target_file_list)
-        console.log(self.app_name,f'キャッシュ更新完了。Finish updata caches. [mode={mode}]')
+        check_all = self.hearinger.select('全ファイルのキャッシュ更新続けますか？ ', ['y', 'n', 'yes', 'no'], blank_ok=False)
+        print()
+
+        if  check_all == 'n' or check_all == 'no':
+            self.__updateOneByOne(mode, target_file_list, upData_file_list)
+        else:
+            self.__updateAllFile(mode, target_file_list, upData_file_list)
+
         return True
 
 
@@ -495,7 +530,7 @@ class Cache():
 
     async def start(self):
         # アセットリソースファイル一覧 取得
-        svn_data = self.csvn.getSVNCacheData()
+        svn_data = Spinner(self.csvn.getSVNCacheData)()
 
         self.doCache(svn_data)
         return

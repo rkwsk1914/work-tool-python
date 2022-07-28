@@ -6,6 +6,7 @@ from modules.common.file_controller import FileController
 from modules.common.log_master import LogMater
 from modules.common.backlog_api import BacklogApi
 from modules.common.svn import SvnConroller
+from modules.common.spinner import Spinner
 
 from modules.config.setup import DEVELOPMENT_ENVIRONMENT
 
@@ -101,8 +102,8 @@ class Merge(BacklogApi):
         merge_dir = self.setItemPath(self.merge_env, '')
         orign_svn = SvnConroller(orign_dir)
         merge_svn = SvnConroller(merge_dir)
-        orign_check = orign_svn.update()
-        merge_check = merge_svn.update()
+        orign_check = Spinner(orign_svn.update)()
+        merge_check = Spinner(merge_svn.update)()
 
         if orign_check == False or merge_check == False:
             return False
