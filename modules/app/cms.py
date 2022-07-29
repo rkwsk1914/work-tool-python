@@ -319,7 +319,7 @@ class ExceptionContets():
         return
 
     # mode = page | content
-    def check(slef, dir_item, mode):
+    def check(self, dir_item, mode):
         result = dir_item
 
         check_pc_include = re.search(r'/mobile/design/parts/common/pc/include/support/', dir_item)
@@ -371,9 +371,9 @@ class CMSSitecore(CmsThrow):
     def checkExeption(self, page_dir, file_item):
         isExeption = False
 
-        sitecore_page = self.ex.check(file_item, 'page')
+        sitecore_content = self.ex.check(file_item, 'content')
 
-        if sitecore_page == page_dir:
+        if sitecore_content == file_item:
             isExeption = False
         else:
             isExeption = True
@@ -382,27 +382,35 @@ class CMSSitecore(CmsThrow):
 
     def throwArtcle(self, page_dir):
         page_data = self.data[page_dir]
-        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
+        file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta']))
+        alll_file_list = list(set(page_data['article'] + page_data['loacalcode'] + page_data['meta'] + page_data['html']))
 
-        if len(file_list) < 1:
+        if len(alll_file_list) < 1:
             return
 
         url = self.createContenURL(page_dir)
-        isExeption = self.checkExeption(page_dir, file_list[0])
 
-        if (isExeption == True):
-            self.openExe.webOpen(url)
-            self.showDirItem(page_dir)
+        if len(file_list) > 0:
+            isExeption = self.checkExeption(page_dir, file_list[0])
+
+            if (isExeption == True):
+                self.openExe.webOpen(url)
+                self.showDirItem(page_dir)
+                for file_item in file_list:
+                    new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
+                    self.openExe.winMergeOpen(new_content)
+            else:
+                self.openExe.webOpen(url)
+                self.openExe.openCockpit(page_dir, page_data, self.env)
+                self.showDirItem(page_dir)
+
             for file_item in file_list:
-                new_content = self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + file_item)
-                self.openExe.winMergeOpen(new_content)
-        else:
-            self.openExe.webOpen(url)
-            self.openExe.openCockpit(page_dir, page_data, self.env)
-            self.showDirItem(page_dir)
+                self.checkDone(file_item)
 
-        for file_item in file_list:
-            self.checkDone(file_item)
+        for html_item in page_data['html']:
+            self.openExe.webOpen(self.createContenURL(html_item))
+            self.openExe.winMergeOpen(self.fc.creanPath(DEVELOPMENT_ENVIRONMENT + '/' + self.env + '/' + html_item))
+            self.checkDone(html_item)
 
         self.openExe.preview(page_dir)
         self.hearinger.select(f'check preview "{page_dir}" ?', ('y', 'n'), True)
@@ -481,7 +489,7 @@ class CMSSitecore(CmsThrow):
         check = self.hearinger.select(f'Did you login Sitecore ?', ('y', 'n'), True)
 
         if check == 'n':
-            return
+                return
 
         for page_dir in self.data:
             self.showData(page_dir, self.page_count)
@@ -521,22 +529,16 @@ class ThrowList(BacklogApi):
             check_src = re.search(r'/src', file_item)
 
             if not check_src is None:
-                print(file_item)
-                print(all_file_list[all_file_list.index(file_item)])
-                print()
                 all_file_list.pop(all_file_list.index(file_item))
 
         for file_item in all_file_list:
             check_src = re.search(r'/src', file_item)
 
             if not check_src is None:
-                print(file_item)
-                print(all_file_list[all_file_list.index(file_item)])
-                print()
                 all_file_list.pop(all_file_list.index(file_item))
 
         result = sorted(all_file_list)
-        pprint.pprint(result)
+        #pprint.pprint(result)
         return result
 
     def setItemPath(self, item):
@@ -662,9 +664,9 @@ class CMSController(ThrowList):
     def start(self):
         self.getPageData(self.getPageList())
 
-        #checkSvn =  self.updataSvn()
-        #if checkSvn == False:
-        #    return
+        checkSvn =  self.updataSvn()
+        if checkSvn == False:
+            return
 
         check_cms_type = self.cms_c.checkCMSType()
         if check_cms_type == 'WIRO':
